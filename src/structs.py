@@ -58,17 +58,16 @@ class Column:
         self,
         name: str,
         width: float,
-        col_idx: int,
-        row_idx: int,
-        filter_option: bool = False,
+        x: int,
+        y: int,
         format: Dict = None,
         cells: List[Cell] = None,
     ):
         self.name = name
         self.width = width
-        self.row_idx = row_idx
-        self.col_idx = col_idx
-        self.filter_option = filter_option
+        self.x = x
+        self.y = y
+        self.n = 0
         self.format = Format(format) if format else Format()
         self.cells = cells if cells else []
 
@@ -82,14 +81,14 @@ class Column:
     ):
         cell_format = self.format.update(format)
         cell = Cell(
-            data, self.row_idx, self.col_idx, data_format, cell_format, merge_range
+            data, self.x + self.n, self.y, data_format, cell_format, merge_range
         )
         self.add_cell(cell)
 
         return cell
 
     def add_cell(self, cell: Cell):
-        self.row_idx += 1
+        self.n += 1
         self.cells.append(cell)
 
     def add_cells(self, cells: List[Cell]):
@@ -110,6 +109,7 @@ class Table:
         set_rows: List[list],
         set_columns: List[list],
         table_format: Dict = dict(),
+        filter_option: bool = False,
         columns: Dict[str, Column] = None,
         images: Dict = None,
     ):
@@ -121,23 +121,22 @@ class Table:
         self.set_columns = set_columns
 
         self.table_format = Format(table_format)
+        self.filter_option = filter_option
         self.columns = columns if columns else dict()
         self.images = images if images else dict()
-        self.num_col = 0
+        self.n = 0
 
     def get_and_add_column(
         self,
         name,
         width: float = 5.0,
         format: Dict = dict(),
-        filter_option=False,
     ):
         col = Column(
             name,
             width,
-            self.y + self.num_col,
             self.x,
-            filter_option,
+            self.y + self.n,
             self.table_format.update(format),
         )
         self.add_column(col)
@@ -145,7 +144,7 @@ class Table:
         return col
 
     def add_column(self, col: Column):
-        self.num_col += 1
+        self.n += 1
         self.columns[col.name] = col
 
     def add_columns(self, cols: List[Column]):

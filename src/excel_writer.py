@@ -173,20 +173,13 @@ class ExcelSheetWritter:
         """
         merge_list = defaultdict(list)
         merge_cell = None
-        end_row_index = -1
-        end_column_index = -1
 
-        for data_column_index, column in enumerate(table.columns.values()):
-
-            for data_row_index, cell in enumerate(column.cells):
-
-                column_index = data_column_index + self.__start_column
-                row_index = data_row_index + self.__start_row
-
+        for column in table.columns.values():
+            for cell in column.cells:
                 # Write generic data to a worksheet cell.
                 self.__sheet.write(
-                    row_index,
-                    column_index,
+                    cell.x,
+                    cell.y,
                     cell.data,
                     self.__parse_cell_format(cell.cell_format),
                 )
@@ -197,25 +190,24 @@ class ExcelSheetWritter:
                         cell.data, cell.cell_format, cell.data_format
                     )
                     self.__sheet.write_rich_string(
-                        row_index,
-                        column_index,
+                        cell.x,
+                        cell.y,
                         *data_format,
                         self.__parse_cell_format(cell.cell_format)
                     )
 
-                    continue
-
                 # Set merge range of cells
                 if cell.merge_range:
+                    
                     if cell.merge_range[0][0] == cell.merge_range[1][0]:  # row merge
                         if (
-                            column_index == cell.merge_range[0][1]
-                            and row_index == cell.merge_range[0][0]
+                            cell.y == cell.merge_range[0][1]
+                            and cell.x == cell.merge_range[0][0]
                         ):  # Merge start point
                             merge_cell = cell
 
-                        if (column_index == cell.merge_range[1][1]) and (
-                            row_index == cell.merge_range[1][0]
+                        if (cell.y == cell.merge_range[1][1]) and (
+                            cell.x == cell.merge_range[1][0]
                         ):  # Merge end point
                             merge_cell.cell_format["right"] = cell.cell_format.get(
                                 "right", 0
@@ -225,40 +217,32 @@ class ExcelSheetWritter:
                             merge_cell = None
 
                     if cell.merge_range[0][1] == cell.merge_range[1][1]:  # column merge
-                        if (column_index == cell.merge_range[0][1]) and (
-                            row_index == cell.merge_range[0][0]
+                        if (cell.y == cell.merge_range[0][1]) and (
+                            cell.x == cell.merge_range[0][0]
                         ):  # Merge start point
                             merge_cell = cell
 
-                        if (column_index == cell.merge_range[1][1]) and (
-                            row_index == cell.merge_range[1][0]
+                        if (cell.y == cell.merge_range[1][1]) and (
+                            cell.x == cell.merge_range[1][0]
                         ):  # Merge end point
                             merge_cell.cell_format["bottom"] = cell.cell_format.get(
                                 "bottom", 0
                             )
-
                             merge_list[cell.merge_range] = merge_cell
                             merge_cell = None
 
-                    continue
-
                 # Add cell comments
                 if cell.comments:
-                    self.__sheet.write_comment(
-                        row_index, column_index, cell.comments["data"]
-                    )
+                    self.__sheet.write_comment(cell.x, cell.y, cell.comments["data"])
 
-                end_row_index = data_row_index
-            end_column_index = data_column_index
-
-            # An autofilter in Excel
-            if column.filter_option:
-                self.__sheet.autofilter(
-                    self.__start_row,
-                    self.__start_column,
-                    self.__start_row + end_row_index,
-                    self.__start_column + end_column_index,
-                )
+        # An autofilter in Excel
+        if table.filter_option:
+            self.__sheet.autofilter(
+                table.x,
+                table.y,
+                table.x + len(table.columns[list(table.columns.keys())[0]].cells),
+                table.y + table.n - 1,
+            )
 
         if table.images:
             for key, image_data in table.images.items():

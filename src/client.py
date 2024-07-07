@@ -20,6 +20,7 @@ def export(students: Dict[str, List[Tuple]]) -> Table:
             "left": 7,
             "right": 7,
         },
+        filter_option=True,
     )
     header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
 
