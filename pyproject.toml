@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "excel-writer"
+version = "0.1.0"
+description = "simplify and standardize the process of generating Excel files"
+authors = ["DongHunKim <ddong3525@gmail.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+xlsxwriter = "^3.2.0"
+texttable = "^1.7.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
