@@ -1,5 +1,8 @@
 ##  1.0.0
 
+![image](https://github.com/ampersandor/excel-writer/assets/57800485/6ef0fb11-f8f8-4d95-9bb6-12d0d17bac65)
+
+
 <details>
     <summary>Table of content</summary>
 
