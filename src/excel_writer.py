@@ -171,8 +171,8 @@ class ExcelSheetWritter:
         Args:
             table: table object got from json file
         """
-        merge_list = defaultdict(list)
-        merge_cell = None
+        merge_dict = defaultdict(list)
+        # merge_cell = None
 
         for column in table.columns.values():
             for cell in column.cells:
@@ -195,42 +195,13 @@ class ExcelSheetWritter:
                         *data_format,
                         self.__parse_cell_format(cell.cell_format)
                     )
-
-                # Set merge range of cells
                 if cell.merge_range:
-                    
-                    if cell.merge_range[0][0] == cell.merge_range[1][0]:  # row merge
-                        if (
-                            cell.y == cell.merge_range[0][1]
-                            and cell.x == cell.merge_range[0][0]
-                        ):  # Merge start point
-                            merge_cell = cell
-
-                        if (cell.y == cell.merge_range[1][1]) and (
-                            cell.x == cell.merge_range[1][0]
-                        ):  # Merge end point
-                            merge_cell.cell_format["right"] = cell.cell_format.get(
-                                "right", 0
-                            )
-
-                            merge_list[cell.merge_range] = merge_cell
-                            merge_cell = None
-
-                    if cell.merge_range[0][1] == cell.merge_range[1][1]:  # column merge
-                        if (cell.y == cell.merge_range[0][1]) and (
-                            cell.x == cell.merge_range[0][0]
-                        ):  # Merge start point
-                            merge_cell = cell
-
-                        if (cell.y == cell.merge_range[1][1]) and (
-                            cell.x == cell.merge_range[1][0]
-                        ):  # Merge end point
-                            merge_cell.cell_format["bottom"] = cell.cell_format.get(
-                                "bottom", 0
-                            )
-                            merge_list[cell.merge_range] = merge_cell
-                            merge_cell = None
-
+                    min_range, max_range = cell.merge_range
+                    key = (
+                        tuple(min_range),
+                        tuple(max_range),
+                    )  # make sure that it is not list
+                    merge_dict[key].append(cell)
                 # Add cell comments
                 if cell.comments:
                     self.__sheet.write_comment(cell.x, cell.y, cell.comments["data"])
@@ -251,13 +222,19 @@ class ExcelSheetWritter:
                     row, column, "image.png", {"image_data": BytesIO(image_data)}
                 )
         # merge cells and write data into cells
-        for merge_range, cell in merge_list.items():
-            if merge_range[0] != merge_range[1]:
+        for merge_range, cells in merge_dict.items():
+            min_range, max_range = merge_range
+            if min_range != max_range:
+                right_down_format = cells[-1].cell_format
+                merged_format = cells[0].cell_format
+                merged_format["right"] = right_down_format.get("right", 0)
+                merged_format["bottom"] = right_down_format.get("bottom", 0)
+
                 self.__sheet.merge_range(
-                    *merge_range[0],
-                    *merge_range[1],
-                    cell.data,
-                    self.__parse_cell_format(cell.cell_format)
+                    *min_range,
+                    *max_range,
+                    cells[0].data,
+                    self.__parse_cell_format(merged_format)
                 )
         self.__sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
