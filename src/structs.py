@@ -79,7 +79,7 @@ class Column:
             merge_range=None,
             comments=None,
     ):
-        cell_format = self.format.update(format)
+        cell_format = self.format.update(format if format else dict())
         cell = Cell(
             data, self.x + self.n, self.y, data_format, cell_format, merge_range
         )
@@ -145,17 +145,6 @@ class Table:
         for column in self.columns.values():
             column.draw_division(lvl, row_num)
 
-    @staticmethod
-    def merge(cells: List[Cell]):
-        min_range, max_range = (float("inf"), float("inf")), (float("-inf"), float("-inf"))
-
-        for cell in cells:
-            min_range = min(min_range, cell.get_range())
-            max_range = max(max_range, cell.get_range())
-
-        for cell in cells:
-            cell.merge_range = (min_range, max_range)
-
     def show(self):
         t = Texttable()
         col_size = list()
@@ -199,6 +188,16 @@ class Sheet:
 
         return self.tables[table_name]
 
+    @staticmethod
+    def merge(cells: List[Cell]):
+        min_range, max_range = (float("inf"), float("inf")), (float("-inf"), float("-inf"))
+
+        for cell in cells:
+            min_range = min(min_range, cell.get_range())
+            max_range = max(max_range, cell.get_range())
+
+        for cell in cells:
+            cell.merge_range = (min_range, max_range)
 
 if __name__ == "__main__":
     format1 = Format()

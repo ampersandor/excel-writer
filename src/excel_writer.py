@@ -1,13 +1,11 @@
 from io import BytesIO
 from collections import defaultdict
 from itertools import chain
-import os
 from ast import literal_eval
-
+from typing import Dict, List, Tuple
 import xlsxwriter
 
 from structs import Sheet, Table
-from sheet_config import SheetConfig
 
 
 class SingletonMeta(type):
@@ -30,66 +28,52 @@ class ExcelExporter(metaclass=SingletonMeta):
             filename: Excel file name
         """
         self.filename = filename
-        self.__workbook = xlsxwriter.Workbook(filename)
-
-    def get_workbook(self):
-        """return xlsx workbook object
-
-        Returns: workbook
-        """
-        return self.__workbook
-
-    def write_sheet(self, sheet: Sheet):
-        """Add a table object to excel sheet"""
-        col_sizes = []
-        for table_name, table in sheet.tables.items():
-            for column in table.columns.values():
-                col_sizes.append((column.y, column.width))
-
-        sheet_config = SheetConfig(sheet.freeze_panes, sheet.set_zoom, sheet.set_rows, sheet.set_columns,
-                                   col_sizes)
-
-        writer = ExcelSheetWriter(self.__workbook.add_worksheet(sheet.name), sheet_config)
-        writer.write_sheet(sheet)
+        self.workbook = xlsxwriter.Workbook(filename)
 
     def write_sheets(self, sheets):
         """Write Excel sheets added from 'add_sheet' function
 
         Note: xlsxwritter automatically closed, because workbook closed in this function
         """
-        for sheet in sheets:
-            self.write_sheet(sheet)
+        for sheet_data in sheets:
+            writer = ExcelSheetWriter(self.workbook, sheet_data)
+            writer.write_sheet()
 
-        self.__workbook.close()
+        self.workbook.close()
 
 
 class ExcelSheetWriter:
-    def __init__(self, sheet: xlsxwriter.Workbook.worksheet_class, sheet_config: SheetConfig):
+    def __init__(self, workbook, sheet_data: Sheet):
         """This class writes the excel file.
 
         Args:
             sheet: a excel sheet to be written
             sheet_config: sheet configuration dataclass such as 'table zoom, header width, starting point to write'
         """
-        self.__workbook = ExcelExporter().get_workbook()
-        self.__sheet = sheet
-        if sheet_config.freeze_panes:
-            for freeze_pane in sheet_config.freeze_panes:
-                self.__sheet.freeze_panes(*freeze_pane)
+        self.workbook = workbook
+        self.sheet = workbook.add_worksheet(sheet_data.name)
+        self.sheet_data = sheet_data
+        self.__init_sheet()
 
-        if sheet_config.set_zoom:
-            self.__sheet.set_zoom(sheet_config.set_zoom)
+    def __init_sheet(self):
+        if self.sheet_data.freeze_panes:
+            for freeze_pane in self.sheet_data.freeze_panes:
+                self.sheet.freeze_panes(*freeze_pane)
 
-        for set_row in sheet_config.set_rows:
-            self.__sheet.set_row(*set_row)
+        if self.sheet_data.set_zoom:
+            self.sheet.set_zoom(self.sheet_data.set_zoom)
 
-        for set_columns in sheet_config.set_columns:
-            self.__sheet.set_column(*set_columns)
+        for set_row in self.sheet_data.set_rows:
+            self.sheet.set_row(*set_row)
 
-        for idx, width in sheet_config.column_sizes:
-            self.__sheet.set_column(idx, idx, width=float(width))
+        for set_columns in self.sheet_data.set_columns:
+            self.sheet.set_column(*set_columns)
 
-    def _parse_cell_format(self, cell_format=None):
+        for table in self.sheet_data.tables.values():
+            for column in table.columns.values():
+                self.sheet.set_column(column.y, column.y, width=float(column.width))
+
+    def __parse_cell_format(self, cell_format : Dict =None):
         """Convert 'dictionary' data type to pre-defined 'xlsx format object' and return
 
         Args:
@@ -98,9 +82,9 @@ class ExcelSheetWriter:
         Return: xlsxwritter 'format' object
         """
 
-        return self.__workbook.add_format(cell_format)
+        return self.workbook.add_format(cell_format)
 
-    def _parse_data_format(self, data: str, cell_format: dict, data_format: dict):
+    def __parse_data_format(self, data: str, cell_format: dict, data_format: dict):
         """Return the list chained each data and format with multiple formats
 
         Args:
@@ -111,7 +95,7 @@ class ExcelSheetWriter:
         Return: A list of format and data in order
         """
         format_list = [
-            self._parse_cell_format(
+            self.__parse_cell_format(
                 {
                     "color": "black",
                     "font_name": cell_format.get("font_name", "Courier new"),
@@ -132,35 +116,32 @@ class ExcelSheetWriter:
                         "font_size": cell_format.get("font_size", 10),
                     }
                 )
-                format_list[i] = self._parse_cell_format(this_format)
+                format_list[i] = self.__parse_cell_format(this_format)
 
         return list(chain.from_iterable(zip(format_list, data)))
 
-    def write_sheet(self, sheet: Sheet):
-        """Write a sheet
+    def write_sheet(self):
+        """Write a sheet"""
 
-        Args:
-            sheet: a sheet object from xlsxwriter
-        """
-        for table in sheet.tables.values():
-            self.write_table(table)
+        for table in self.sheet_data.tables.values():
+            self.__write_table(table)
 
-        if sheet.images:
-            for key, image_data in sheet.images.items():
+        if self.sheet_data.images:
+            for key, image_data in self.sheet_data.images.items():
                 row, column = literal_eval(key)
-                self.__sheet.insert_image(
+                self.sheet.insert_image(
                     row, column, "image.png", {"image_data": BytesIO(image_data)}
                 )
 
-        self.__sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
+        self.sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
-    def write_table(self, table: Table):
+    def __write_table(self, table: Table):
         merge_dict = defaultdict(list)
         for column in table.columns.values():
             for cell in column.cells:
                 # Write generic data to a worksheet cell.
-                fm = self._parse_cell_format(cell.cell_format)
-                self.__sheet.write(
+                fm = self.__parse_cell_format(cell.cell_format)
+                self.sheet.write(
                     cell.x,
                     cell.y,
                     cell.data,
@@ -169,14 +150,14 @@ class ExcelSheetWriter:
 
                 # Write a "rich" string with multiple formats to a worksheet cell.
                 if cell.data_format:
-                    data_format = self._parse_data_format(
+                    data_format = self.__parse_data_format(
                         cell.data, cell.cell_format, cell.data_format
                     )
-                    self.__sheet.write_rich_string(
+                    self.sheet.write_rich_string(
                         cell.x,
                         cell.y,
                         *data_format,
-                        self._parse_cell_format(cell.cell_format)
+                        self.__parse_cell_format(cell.cell_format)
                     )
                 if cell.merge_range:
                     min_range, max_range = cell.merge_range
@@ -187,7 +168,7 @@ class ExcelSheetWriter:
                     merge_dict[key].append(cell)
                 # Add cell comments
                 if cell.comments:
-                    self.__sheet.write_comment(cell.x, cell.y, cell.comments["data"])
+                    self.sheet.write_comment(cell.x, cell.y, cell.comments["data"])
 
         # merge cells and write data into cells
         for merge_range, cells in merge_dict.items():
@@ -198,16 +179,16 @@ class ExcelSheetWriter:
                 merged_format["right"] = right_down_format.get("right", 0)
                 merged_format["bottom"] = right_down_format.get("bottom", 0)
 
-                self.__sheet.merge_range(
+                self.sheet.merge_range(
                     *min_range,
                     *max_range,
                     cells[0].data,
-                    self._parse_cell_format(merged_format)
+                    self.__parse_cell_format(merged_format)
                 )
 
-        # An autofilter in Excel
+        # An auto filter in Excel
         if table.filter_option:
-            self.__sheet.autofilter(
+            self.sheet.autofilter(
                 table.x,
                 table.y,
                 table.x + len(table.columns[list(table.columns.keys())[0]].cells),

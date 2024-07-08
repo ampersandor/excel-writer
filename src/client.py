@@ -51,7 +51,7 @@ def export(students: Dict[str, List[Tuple]]) -> Sheet:
             cell = average_col.get_and_add_cell(round(total / len(records), 2))
             to_be_merged.append(cell)
 
-        table.merge(to_be_merged)
+        sheet.merge(to_be_merged)
         table.draw_division(lvl="thick")
 
     table.show()
