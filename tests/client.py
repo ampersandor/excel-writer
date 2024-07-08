@@ -50,16 +50,16 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
 
     # ######################################## Make columns ########################################
     name_col = table.get_and_add_column("Name", width=13.5, format={"left": 2})
-    name_col.get_and_add_cell("Name", format=header_format)
+    name_col.get_and_add_cell("Name", format=header_format.font_color("white").bg_color("#E87A5D"))
 
     subject_col = table.get_and_add_column("Subject", width=20)
-    subject_col.get_and_add_cell("Subject", format=header_format.font_color("white").bg_color("blue"))
+    subject_col.get_and_add_cell("Subject", format=header_format.font_color("#F3B941").bg_color("#3B5BA5"))
 
     score_col = table.get_and_add_column("Score", width=4.5)
-    score_col.get_and_add_cell("Score", format=header_format)
+    score_col.get_and_add_cell("Score", format=header_format.font_color("#3B5BA5").bg_color("#E87A5D"))
 
     average_col = table.get_and_add_column("Average", width=8, format={"right": 2})
-    average_col.get_and_add_cell("Average", format=header_format)
+    average_col.get_and_add_cell("Average", format=header_format.font_color("#E87A5D").bg_color("#F3B941"))
 
     # ######################################## Make cells ########################################
 
@@ -88,7 +88,7 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
 def export_sequence_sheet(sequences: List[Tuple]):
     default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
                             "bold": False, "left": 7, "right": 7})
-    header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
+    header_format = Format({"top": 2, "bottom": 2, "bold": True})
 
     # ######################################## Make sheet ########################################
     sheet = Sheet(
@@ -104,16 +104,16 @@ def export_sequence_sheet(sequences: List[Tuple]):
 
     # ######################################## Make columns ########################################
     project_col = table.get_and_add_column("Project", width=10.5, format={"left": 2})
-    project_col.get_and_add_cell("Project", format=header_format)
+    project_col.get_and_add_cell("Project", format=header_format.bg_color("#E87A5D"))
 
     set_col = table.get_and_add_column("Set", width=7)
-    set_col.get_and_add_cell("Set", format=header_format)
+    set_col.get_and_add_cell("Set", format=header_format.bg_color("3B5BA5"))
 
     type_col = table.get_and_add_column("Type", width=10)
-    type_col.get_and_add_cell("Type", format=header_format)
+    type_col.get_and_add_cell("Type", format=header_format.bg_color("E87A5D"))
 
     sequence_col = table.get_and_add_column("Sequences", width=60, format={"align": "left", "right": 2})
-    sequence_col.get_and_add_cell("Sequences", format=header_format.align(Align.CENTER))
+    sequence_col.get_and_add_cell("Sequences", format=header_format.align(Align.CENTER).bg_color("F3B941"))
 
     # ######################################## Make cells ########################################
     project_dict = defaultdict(list)
