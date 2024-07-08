@@ -1,10 +1,38 @@
-from typing import List, Dict, Tuple
+import re
+from typing import List, Dict, Tuple, Optional
+from collections import defaultdict
+
 
 from excel_writer import ExcelExporter
 from structs import Sheet, Table, Column, Cell, Format
 
 
-def export(students: Dict[str, List[Tuple]]) -> Sheet:
+def get_seq_format(seq: str, regex: str = "[^ATGC]+", data_format: Optional[dict] = None) -> Dict[str, dict]:
+    """Check a position of specific string in sequence and return a font format to emphasize them
+
+    Args:
+        seq: Oligo sequence
+        regex: String to search
+        data_format: Data format for string
+
+    Returns:
+        Dictionary containing start to end position in *string* format as a key and dictionary of font format as a value
+
+        For example::
+
+            {
+             "(16, 20)": {  # string for json
+                          "color": "red",
+                          "bold": True
+                         }
+            }
+    """
+    if not data_format:
+        data_format = {"color": "red", "bold": True}
+
+    return {str(m.span()): data_format for m in re.finditer(regex, seq)}
+
+def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
     default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
                              "bold": False, "left": 7, "right": 7})
     header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
@@ -59,8 +87,59 @@ def export(students: Dict[str, List[Tuple]]) -> Sheet:
     return sheet
 
 
-def main(students, output_file_name="output.xlsx"):
-    sheets = [export(students)]
+def export_sequence_sheet(sequences: List[Tuple]):
+    default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
+                            "bold": False, "left": 7, "right": 7})
+    header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
+
+    # ######################################## Make sheet ########################################
+    sheet = Sheet(
+        name="Sequences", set_zoom=85, freeze_panes=[(2, 0)],
+        set_rows=[(1, 20.25)],  # set header column height as 20.25
+        set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
+    )
+
+    # ######################################## Make table ########################################
+
+    table = sheet.get_and_add_table(table_name="TOM Result", draw_from=(5, 5), table_format=default_format,
+                                    filter_option=True)
+
+    # ######################################## Make columns ########################################
+    project_col = table.get_and_add_column("Project", width=10.5, format={"left": 2})
+    project_col.get_and_add_cell("Project", format=header_format)
+
+    set_col = table.get_and_add_column("Set", width=7)
+    set_col.get_and_add_cell("Set", format=header_format)
+
+    type_col = table.get_and_add_column("Type", width=10)
+    type_col.get_and_add_cell("Type", format=header_format)
+
+    sequence_col = table.get_and_add_column("Sequences", width=60, format={"align": "left", "right": 2})
+    sequence_col.get_and_add_cell("Sequences", format=header_format.update({"align": "center"}))
+
+    # ######################################## Make cells ########################################
+    project_dict = defaultdict(list)
+    set_dict = defaultdict(list)
+    for project, set, type, sequence in sequences:
+        project_dict[project].append(project_col.get_and_add_cell(project))
+        set_dict[set].append(set_col.get_and_add_cell(set))
+        type_col.get_and_add_cell(type)
+        sequence_col.get_and_add_cell(sequence, data_format=get_seq_format(sequence))
+        table.draw_division(lvl="normal")
+    table.draw_division(lvl="thick")
+    table.show()
+
+    for project_list in project_dict.values():
+        sheet.merge(project_list)
+
+    for set_list in set_dict.values():
+        sheet.merge(set_list)
+
+    return sheet
+
+
+def main(students, sequences, output_file_name="output.xlsx"):
+    sheets = [export_student_sheet(students), export_sequence_sheet(sequences)]
     excel_exporter = ExcelExporter(output_file_name)
     excel_exporter.write_sheets(sheets)
 
@@ -75,4 +154,15 @@ if __name__ == "__main__":
         "Judy Yoo": [("Math", 54), ("Computer Science", 55)],
     }
 
-    main(students)
+    sequences = [("1659", "Set1", "Pitcher", "ATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set1", "Catcher", "TTAATAGATATATATATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set1", "Probe", "GGACACAGTCAGCTAGCTACGATGCTAGCATGCATGCATGCTGTGCTGATCGA"),
+                 ("1659", "Set2", "Pitcher", "ATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set2", "Catcher", "TTAATAGATATATATATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set2", "Probe", "GGACACAGTCAGCTAGCTACGATGCTAGCATGCATGCATGCTGTGCTGATCGA"),
+                 ("1659", "Set3", "Pitcher", "ATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set3", "Catcher", "TTAATAGATATATATATAGATAGAGACACAGAACAGCACTGACUTGACTGACTGCTGACGTAGT"),
+                 ("1659", "Set3", "Probe", "GGACACAGTCAGCTAGCTACGATGCTAGCATGCATGCATGCTGTGCTGATCGA"),
+                 ]
+
+    main(students, sequences)
