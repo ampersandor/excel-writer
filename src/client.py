@@ -4,7 +4,7 @@ from collections import defaultdict
 
 
 from excel_writer import ExcelExporter
-from structs import Sheet, Table, Column, Cell, Format
+from structs import Sheet, Table, Column, Cell, Format, Divisor, Align, VAlign
 
 
 def get_seq_format(seq: str, regex: str = "[^ATGC]+", data_format: Optional[dict] = None) -> Dict[str, dict]:
@@ -32,6 +32,7 @@ def get_seq_format(seq: str, regex: str = "[^ATGC]+", data_format: Optional[dict
 
     return {str(m.span()): data_format for m in re.finditer(regex, seq)}
 
+
 def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
     default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
                              "bold": False, "left": 7, "right": 7})
@@ -39,13 +40,13 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
 
     # ######################################## Make sheet ########################################
     sheet = Sheet(
-        name="Students", set_zoom=85, freeze_panes=[(2, 0)],
+        name="Students", set_zoom=180, freeze_panes=[(2, 0)],
         set_rows=[(1, 20.25)],  # set header column height as 20.25
         set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
     )
     # ######################################## Make table ########################################
 
-    table = sheet.get_and_add_table(table_name="Records", draw_from=(5, 5), table_format=default_format,
+    table = sheet.get_and_add_table(table_name="Records", draw_from=(1, 1), table_format=default_format,
                                     filter_option=True)
 
     # ######################################## Make columns ########################################
@@ -53,10 +54,7 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
     name_col.get_and_add_cell("Name", format=header_format)
 
     subject_col = table.get_and_add_column("Subject", width=20)
-    subject_col.get_and_add_cell(
-        "Subject",
-        format=header_format.update({"bg_color": "blue", "font_color": "white"}),
-    )
+    subject_col.get_and_add_cell("Subject", format=header_format.font_color("white").bg_color("blue"))
 
     score_col = table.get_and_add_column("Score", width=4.5)
     score_col.get_and_add_cell("Score", format=header_format)
@@ -80,7 +78,8 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
             to_be_merged.append(cell)
 
         sheet.merge(to_be_merged)
-        table.draw_division(lvl="thick")
+        table.draw_division(lvl=Divisor.NORMAL)
+    table.draw_division(lvl=Divisor.THICK)
 
     table.show()
 
@@ -94,14 +93,14 @@ def export_sequence_sheet(sequences: List[Tuple]):
 
     # ######################################## Make sheet ########################################
     sheet = Sheet(
-        name="Sequences", set_zoom=85, freeze_panes=[(2, 0)],
+        name="Sequences", set_zoom=180, freeze_panes=[(2, 0)],
         set_rows=[(1, 20.25)],  # set header column height as 20.25
         set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
     )
 
     # ######################################## Make table ########################################
 
-    table = sheet.get_and_add_table(table_name="TOM Result", draw_from=(5, 5), table_format=default_format,
+    table = sheet.get_and_add_table(table_name="TOM Result", draw_from=(1, 1), table_format=default_format,
                                     filter_option=True)
 
     # ######################################## Make columns ########################################
@@ -115,18 +114,20 @@ def export_sequence_sheet(sequences: List[Tuple]):
     type_col.get_and_add_cell("Type", format=header_format)
 
     sequence_col = table.get_and_add_column("Sequences", width=60, format={"align": "left", "right": 2})
-    sequence_col.get_and_add_cell("Sequences", format=header_format.update({"align": "center"}))
+    sequence_col.get_and_add_cell("Sequences", format=header_format.align(Align.CENTER))
 
     # ######################################## Make cells ########################################
     project_dict = defaultdict(list)
     set_dict = defaultdict(list)
     for project, set, type, sequence in sequences:
         project_dict[project].append(project_col.get_and_add_cell(project))
+
         set_dict[set].append(set_col.get_and_add_cell(set))
         type_col.get_and_add_cell(type)
         sequence_col.get_and_add_cell(sequence, data_format=get_seq_format(sequence))
-        table.draw_division(lvl="normal")
-    table.draw_division(lvl="thick")
+
+        table.draw_division(lvl=Divisor.NORMAL)
+    table.draw_division(lvl=Divisor.THICK)
     table.show()
 
     for project_list in project_dict.values():

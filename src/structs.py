@@ -5,6 +5,25 @@ from base64 import b64decode, b64encode
 from copy import deepcopy
 from texttable import Texttable
 from itertools import zip_longest
+from enum import Enum
+
+
+class Divisor(Enum):
+    THICK = 2
+    DOTTED = 7
+    NORMAL = 1
+
+
+class Align(Enum):
+    CENTER = "center"
+    LEFT = "left"
+    RIGHT = "right"
+
+
+class VAlign(Enum):
+    VCENTER = "vcenter"
+    TOP = "top"
+    BOTTOM = "bottom"
 
 
 class Format(dict):
@@ -18,6 +37,27 @@ class Format(dict):
         if args[0]:
             dict.update(new_format, *args)
         return new_format
+
+    def divisor(self, lvl: Divisor):
+        return self.update({"bottom": lvl.value})
+
+    def bg_color(self, val):
+        return self.update({"bg_color": val})
+
+    def font_name(self, val):
+        return self.update({"font_name": val})
+
+    def font_color(self, val):
+        return self.update({"font_color": val})
+
+    def font_size(self, n):
+        return self.update({"font_size": n})
+
+    def align(self, val: Align):
+        return self.update({"align": val.value})
+
+    def valign(self, val: VAlign):
+        return self.update({"valign": val.value})
 
     def __str__(self):
         return str(dict(self))
@@ -42,12 +82,14 @@ class Cell:
         self.x = x
         self.y = y
 
-    def draw_division(self, lvl):
-        encoder = {"thick": 2, "dotted": 7, "normal": 1}
-        self.cell_format["bottom"] = encoder.get(lvl, 0)
+    def draw_division(self, lvl: Divisor):
+        if not isinstance(lvl, Divisor):
+            raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
+
+        self.cell_format = self.cell_format.divisor(lvl)
 
     def get_range(self):
-        return (self.x, self.y)
+        return self.x, self.y
 
     def __str__(self):
         return self.data
@@ -95,7 +137,10 @@ class Column:
         for cell in cells:
             self.add_cell(cell)
 
-    def draw_division(self, lvl, row_num):
+    def draw_division(self, lvl: Divisor, row_num: int = -1):
+        if not isinstance(lvl, Divisor):
+            raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
+
         self.cells[row_num].draw_division(lvl)
 
 
@@ -141,7 +186,10 @@ class Table:
         for col in cols:
             self.add_column(col)
 
-    def draw_division(self, lvl: str, row_num: int = -1):
+    def draw_division(self, lvl: Divisor, row_num: int = -1):
+        if not isinstance(lvl, Divisor):
+            raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
+
         for column in self.columns.values():
             column.draw_division(lvl, row_num)
 
