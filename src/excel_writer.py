@@ -6,7 +6,7 @@ from ast import literal_eval
 
 import xlsxwriter
 
-from structs import Table
+from structs import Sheet, Table
 from sheet_config import SheetConfig
 
 
@@ -14,7 +14,7 @@ class SingletonMeta(type):
     _instance = {}
 
     def __call__(cls, *args, **kwargs):
-        """To ensure that a excel class has just a single instance"""
+        """To ensure that an Excel class has just a single instance"""
         if cls not in cls._instance:
             instance = super().__call__(*args, **kwargs)
             cls._instance[cls] = instance
@@ -24,37 +24,13 @@ class SingletonMeta(type):
 class ExcelExporter(metaclass=SingletonMeta):
     def __init__(self, filename="Test.xlsx") -> None:
         """
-        This class exports an object to excel file
+        This class exports an object to Excel file
 
         Args:
-            filename: excel file name
+            filename: Excel file name
         """
+        self.filename = filename
         self.__workbook = xlsxwriter.Workbook(filename)
-        self.__table_list = list()
-        self.__writter_list = list()
-
-    def __get_sheet_config(self, table: Table):
-        """Set sheet configuration such as 'table zoom, header width, starting point to write...
-
-        Args:
-            table: table object from json
-
-        Return:SheetConfig object
-        """
-
-        header_width = list()
-        for column in table.columns.values():
-            header_width.append(column.width)
-
-        return SheetConfig(
-            table.freeze_panes,
-            table.set_zoom,
-            table.set_rows,
-            table.set_columns,
-            header_width,
-            table.x,
-            table.y,
-        )
 
     def get_workbook(self):
         """return xlsx workbook object
@@ -63,31 +39,32 @@ class ExcelExporter(metaclass=SingletonMeta):
         """
         return self.__workbook
 
-    def add_sheet(self, sheet_name: str, table: Table):
+    def write_sheet(self, sheet: Sheet):
         """Add a table object to excel sheet"""
-        self.__writter_list.append(
-            ExcelSheetWritter(
-                self.__workbook.add_worksheet(sheet_name),
-                self.__get_sheet_config(table),
-            )
-        )
-        self.__table_list.append(table)
+        col_sizes = []
+        for table_name, table in sheet.tables.items():
+            for column in table.columns.values():
+                col_sizes.append((column.y, column.width))
 
-    def write(self):
-        """Write excel sheets added from 'add_sheet' function
+        sheet_config = SheetConfig(sheet.freeze_panes, sheet.set_zoom, sheet.set_rows, sheet.set_columns,
+                                   col_sizes)
+
+        writer = ExcelSheetWriter(self.__workbook.add_worksheet(sheet.name), sheet_config)
+        writer.write_sheet(sheet)
+
+    def write_sheets(self, sheets):
+        """Write Excel sheets added from 'add_sheet' function
 
         Note: xlsxwritter automatically closed, because workbook closed in this function
         """
-        for index, writter in enumerate(self.__writter_list):
-            writter.write(self.__table_list[index])
+        for sheet in sheets:
+            self.write_sheet(sheet)
 
         self.__workbook.close()
 
 
-class ExcelSheetWritter:
-    def __init__(
-        self, sheet: xlsxwriter.Workbook.worksheet_class, sheet_config: SheetConfig
-    ):
+class ExcelSheetWriter:
+    def __init__(self, sheet: xlsxwriter.Workbook.worksheet_class, sheet_config: SheetConfig):
         """This class writes the excel file.
 
         Args:
@@ -96,12 +73,9 @@ class ExcelSheetWritter:
         """
         self.__workbook = ExcelExporter().get_workbook()
         self.__sheet = sheet
-
-        self.__start_row = sheet_config.start_row
-        self.__start_column = sheet_config.start_column
-
         if sheet_config.freeze_panes:
-            self.__sheet.freeze_panes(*sheet_config.freeze_panes)
+            for freeze_pane in sheet_config.freeze_panes:
+                self.__sheet.freeze_panes(*freeze_pane)
 
         if sheet_config.set_zoom:
             self.__sheet.set_zoom(sheet_config.set_zoom)
@@ -112,12 +86,10 @@ class ExcelSheetWritter:
         for set_columns in sheet_config.set_columns:
             self.__sheet.set_column(*set_columns)
 
-        column_index = self.__start_column
-        for size in sheet_config.column_size:
-            self.__sheet.set_column(column_index, column_index, width=float(size))
-            column_index += 1
+        for idx, width in sheet_config.column_sizes:
+            self.__sheet.set_column(idx, idx, width=float(width))
 
-    def __parse_cell_format(self, cell_format={}):
+    def _parse_cell_format(self, cell_format=None):
         """Convert 'dictionary' data type to pre-defined 'xlsx format object' and return
 
         Args:
@@ -128,7 +100,7 @@ class ExcelSheetWritter:
 
         return self.__workbook.add_format(cell_format)
 
-    def __parse_data_format(self, data: str, cell_format: dict, data_format: dict):
+    def _parse_data_format(self, data: str, cell_format: dict, data_format: dict):
         """Return the list chained each data and format with multiple formats
 
         Args:
@@ -138,9 +110,8 @@ class ExcelSheetWritter:
 
         Return: A list of format and data in order
         """
-
         format_list = [
-            self.__parse_cell_format(
+            self._parse_cell_format(
                 {
                     "color": "black",
                     "font_name": cell_format.get("font_name", "Courier new"),
@@ -161,39 +132,51 @@ class ExcelSheetWritter:
                         "font_size": cell_format.get("font_size", 10),
                     }
                 )
-                format_list[i] = self.__parse_cell_format(this_format)
+                format_list[i] = self._parse_cell_format(this_format)
 
         return list(chain.from_iterable(zip(format_list, data)))
 
-    def write(self, table: Table):
+    def write_sheet(self, sheet: Sheet):
         """Write a sheet
 
         Args:
-            table: table object got from json file
+            sheet: a sheet object from xlsxwriter
         """
-        merge_dict = defaultdict(list)
-        # merge_cell = None
+        for table in sheet.tables.values():
+            self.write_table(table)
 
+        if sheet.images:
+            for key, image_data in sheet.images.items():
+                row, column = literal_eval(key)
+                self.__sheet.insert_image(
+                    row, column, "image.png", {"image_data": BytesIO(image_data)}
+                )
+
+        self.__sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
+
+    def write_table(self, table: Table):
+        merge_dict = defaultdict(list)
         for column in table.columns.values():
             for cell in column.cells:
                 # Write generic data to a worksheet cell.
+                fm = self._parse_cell_format(cell.cell_format)
                 self.__sheet.write(
                     cell.x,
                     cell.y,
                     cell.data,
-                    self.__parse_cell_format(cell.cell_format),
+                    fm
                 )
 
-                # Write a "rich" string with multiple formats to a wroksheet cell.
+                # Write a "rich" string with multiple formats to a worksheet cell.
                 if cell.data_format:
-                    data_format = self.__parse_data_format(
+                    data_format = self._parse_data_format(
                         cell.data, cell.cell_format, cell.data_format
                     )
                     self.__sheet.write_rich_string(
                         cell.x,
                         cell.y,
                         *data_format,
-                        self.__parse_cell_format(cell.cell_format)
+                        self._parse_cell_format(cell.cell_format)
                     )
                 if cell.merge_range:
                     min_range, max_range = cell.merge_range
@@ -206,21 +189,6 @@ class ExcelSheetWritter:
                 if cell.comments:
                     self.__sheet.write_comment(cell.x, cell.y, cell.comments["data"])
 
-        # An autofilter in Excel
-        if table.filter_option:
-            self.__sheet.autofilter(
-                table.x,
-                table.y,
-                table.x + len(table.columns[list(table.columns.keys())[0]].cells),
-                table.y + table.n - 1,
-            )
-
-        if table.images:
-            for key, image_data in table.images.items():
-                row, column = literal_eval(key)
-                self.__sheet.insert_image(
-                    row, column, "image.png", {"image_data": BytesIO(image_data)}
-                )
         # merge cells and write data into cells
         for merge_range, cells in merge_dict.items():
             min_range, max_range = merge_range
@@ -234,16 +202,15 @@ class ExcelSheetWritter:
                     *min_range,
                     *max_range,
                     cells[0].data,
-                    self.__parse_cell_format(merged_format)
+                    self._parse_cell_format(merged_format)
                 )
-        self.__sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
+        # An autofilter in Excel
+        if table.filter_option:
+            self.__sheet.autofilter(
+                table.x,
+                table.y,
+                table.x + len(table.columns[list(table.columns.keys())[0]].cells),
+                table.y + table.n - 1,
+            )
 
-def main(tables, output_file_name="output.xlsx"):
-    excel_exporter = ExcelExporter(output_file_name)
-
-    for table in tables:
-        excel_exporter.add_sheet(table.name, table)
-    excel_exporter.write()
-
-    return output_file_name

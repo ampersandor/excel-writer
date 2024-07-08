@@ -25,14 +25,14 @@ class Format(dict):
 
 class Cell:
     def __init__(
-        self,
-        data: str,
-        x: int,
-        y: int,
-        data_format: dict = None,
-        cell_format: dict = None,
-        merge_range: tuple = None,
-        comments: dict = None,
+            self,
+            data: str,
+            x: int,
+            y: int,
+            data_format: dict = None,
+            cell_format: dict = None,
+            merge_range: tuple = None,
+            comments: dict = None,
     ):
         self.data = str(data)
         self.data_format = data_format if data_format else dict()
@@ -55,13 +55,13 @@ class Cell:
 
 class Column:
     def __init__(
-        self,
-        name: str,
-        width: float,
-        x: int,
-        y: int,
-        format: Dict = None,
-        cells: List[Cell] = None,
+            self,
+            name: str,
+            width: float,
+            x: int,
+            y: int,
+            format: Dict = None,
+            cells: List[Cell] = None,
     ):
         self.name = name
         self.width = width
@@ -72,12 +72,12 @@ class Column:
         self.cells = cells if cells else []
 
     def get_and_add_cell(
-        self,
-        data,
-        data_format: Dict = None,
-        format: Dict = None,
-        merge_range=None,
-        comments=None,
+            self,
+            data,
+            data_format: Dict = None,
+            format: Dict = None,
+            merge_range=None,
+            comments=None,
     ):
         cell_format = self.format.update(format)
         cell = Cell(
@@ -101,43 +101,33 @@ class Column:
 
 class Table:
     def __init__(
-        self,
-        name: str,
-        set_zoom: int,
-        draw_from: Tuple[int, int],
-        freeze_panes: list,
-        set_rows: List[list],
-        set_columns: List[list],
-        table_format: Dict = dict(),
-        filter_option: bool = False,
-        columns: Dict[str, Column] = None,
-        images: Dict = None,
+            self,
+            name: str,
+            draw_from: Tuple[int, int],
+            table_format: Dict = None,
+            filter_option: bool = False,
+            columns: Dict[str, Column] = None,
     ):
         self.name = name
-        self.set_zoom = set_zoom
         self.x, self.y = draw_from
-        self.freeze_panes = freeze_panes
-        self.set_rows = set_rows
-        self.set_columns = set_columns
 
-        self.table_format = Format(table_format)
+        self.table_format = Format(table_format if table_format else dict())
         self.filter_option = filter_option
         self.columns = columns if columns else dict()
-        self.images = images if images else dict()
         self.n = 0
 
     def get_and_add_column(
-        self,
-        name,
-        width: float = 5.0,
-        format: Dict = dict(),
+            self,
+            name,
+            width: float = 5.0,
+            format: Dict = None
     ):
         col = Column(
             name,
             width,
             self.x,
             self.y + self.n,
-            self.table_format.update(format),
+            self.table_format.update(format if format else dict()),
         )
         self.add_column(col)
 
@@ -155,11 +145,9 @@ class Table:
         for column in self.columns.values():
             column.draw_division(lvl, row_num)
 
-    def merge(self, cells: List[Cell]):
-        min_range, max_range = (float("inf"), float("inf")), (
-            float("-inf"),
-            float("-inf"),
-        )
+    @staticmethod
+    def merge(cells: List[Cell]):
+        min_range, max_range = (float("inf"), float("inf")), (float("-inf"), float("-inf"))
 
         for cell in cells:
             min_range = min(min_range, cell.get_range())
@@ -185,7 +173,7 @@ class Table:
                 col_size.append(5)
         t.set_cols_width(col_size)
         for row in zip_longest(
-            *[column.cells for col_name, column in self.columns.items()]
+                *[column.cells for col_name, column in self.columns.items()]
         ):
             t.add_row(row)
         print(f"[{self.name}]")
@@ -193,8 +181,23 @@ class Table:
 
 
 class Sheet:
-    def __init__(self, tables: Dict[str, Table] = None):
-        self.tables = tables
+    def __init__(self, name, set_zoom: int, freeze_panes: List[Tuple],
+                 set_rows: List[Tuple],
+                 set_columns: List[Tuple],
+                 tables: Dict[str, Table] = None,
+                 images: Dict = None):
+        self.name = name
+        self.set_zoom = set_zoom
+        self.freeze_panes = freeze_panes
+        self.set_rows = set_rows
+        self.set_columns = set_columns
+        self.tables = tables if tables else dict()
+        self.images = images if images else dict()
+
+    def get_and_add_table(self, table_name, draw_from, table_format, filter_option) -> Table:
+        self.tables[table_name] = Table(table_name, draw_from, table_format, filter_option)
+
+        return self.tables[table_name]
 
 
 if __name__ == "__main__":
