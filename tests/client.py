@@ -2,9 +2,8 @@ import re
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 
-
-from excel_writer import ExcelExporter
-from structs import Sheet, Table, Column, Cell, Format, Divisor, Align, VAlign
+from excel_writer.excel_writer import ExcelExporter
+from excel_writer.structs import Sheet, Table, Column, Cell, Format, Divisor, Align, VAlign
 
 
 def get_seq_format(seq: str, regex: str = "[^ATGC]+", data_format: Optional[dict] = None) -> Dict[str, dict]:

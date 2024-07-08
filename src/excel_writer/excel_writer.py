@@ -5,7 +5,7 @@ from ast import literal_eval
 from typing import Dict, List, Tuple
 import xlsxwriter
 
-from structs import Sheet, Table
+from .structs import Sheet, Table
 
 
 class SingletonMeta(type):

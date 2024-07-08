@@ -2,16 +2,25 @@
 name = "excel-writer"
 version = "0.1.0"
 description = "simplify and standardize the process of generating Excel files"
+packages = [{include = "excel_writer", from = "src"}]
 authors = ["DongHunKim <ddong3525@gmail.com>"]
-license = "MIT License"
+maintainers = ["DongHunKim <ddong3525@gmail.com>"]
+license = "MIT"
 readme = "README.md"
+repository = "https://github.com/ampersandor/excel-writer"
+keywords = ["excel", "xlsxwriter", "python"]
+classifiers = [
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+exclude=["test/"]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.8"
 xlsxwriter = "^3.2.0"
 texttable = "^1.7.0"
 
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

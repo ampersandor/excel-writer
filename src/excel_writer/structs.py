@@ -1,7 +1,4 @@
-import json
-import re
 from typing import Dict, List, Tuple
-from base64 import b64decode, b64encode
 from copy import deepcopy
 from texttable import Texttable
 from itertools import zip_longest
@@ -246,6 +243,7 @@ class Sheet:
 
         for cell in cells:
             cell.merge_range = (min_range, max_range)
+
 
 if __name__ == "__main__":
     format1 = Format()
