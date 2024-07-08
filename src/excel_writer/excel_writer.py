@@ -132,6 +132,24 @@ class ExcelSheetWriter:
                 self.sheet.insert_image(
                     row, column, "image.png", {"image_data": BytesIO(image_data)}
                 )
+        if self.sheet_data.cells:
+            for cell in self.sheet_data.cells:
+                self.sheet.write(
+                    cell.x,
+                    cell.y,
+                    cell.data,
+                    self.__parse_cell_format(cell.cell_format)
+                )
+                if cell.data_format:
+                    data_format = self.__parse_data_format(
+                        cell.data, cell.cell_format, cell.data_format
+                    )
+                    self.sheet.write_rich_string(
+                        cell.x,
+                        cell.y,
+                        *data_format,
+                        self.__parse_cell_format(cell.cell_format)
+                    )
 
         self.sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
@@ -140,12 +158,11 @@ class ExcelSheetWriter:
         for column in table.columns.values():
             for cell in column.cells:
                 # Write generic data to a worksheet cell.
-                fm = self.__parse_cell_format(cell.cell_format)
                 self.sheet.write(
                     cell.x,
                     cell.y,
                     cell.data,
-                    fm
+                    self.__parse_cell_format(cell.cell_format)
                 )
 
                 # Write a "rich" string with multiple formats to a worksheet cell.

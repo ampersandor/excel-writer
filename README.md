@@ -82,19 +82,20 @@ And your goal is to draw a table as above.
 ```
 
 ##### 3. Make Column
+
 ```python
     # ######################################## Make columns ########################################
-    name_col = table.get_and_add_column("Name", width=13.5, format={"left": 2})
-    name_col.get_and_add_cell("Name", format=header_format.font_color("white").bg_color("#E87A5D"))
+name_col = table.get_and_add_column("Name", width=13.5, format={"left": 2})
+name_col.get_and_add_cell("Name", column_format=header_format.font_color("white").bg_color("#E87A5D"))
 
-    subject_col = table.get_and_add_column("Subject", width=20)
-    subject_col.get_and_add_cell("Subject", format=header_format.font_color("#F3B941").bg_color("#3B5BA5"))
+subject_col = table.get_and_add_column("Subject", width=20)
+subject_col.get_and_add_cell("Subject", column_format=header_format.font_color("#F3B941").bg_color("#3B5BA5"))
 
-    score_col = table.get_and_add_column("Score", width=4.5)
-    score_col.get_and_add_cell("Score", format=header_format.font_color("#3B5BA5").bg_color("#E87A5D"))
+score_col = table.get_and_add_column("Score", width=4.5)
+score_col.get_and_add_cell("Score", column_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D"))
 
-    average_col = table.get_and_add_column("Average", width=8, format={"right": 2})
-    average_col.get_and_add_cell("Average", format=header_format.font_color("#E87A5D").bg_color("#F3B941"))
+average_col = table.get_and_add_column("Average", width=8, format={"right": 2})
+average_col.get_and_add_cell("Average", column_format=header_format.font_color("#E87A5D").bg_color("#F3B941"))
 ```
 
 #### 4. Make Cells

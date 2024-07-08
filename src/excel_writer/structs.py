@@ -72,12 +72,12 @@ class Cell:
             comments: dict = None,
     ):
         self.data = str(data)
+        self.x = x
+        self.y = y
         self.data_format = data_format if data_format else dict()
         self.cell_format = cell_format if cell_format else Format()
         self.merge_range = merge_range
         self.comments = comments
-        self.x = x
-        self.y = y
 
     def draw_division(self, lvl: Divisor):
         if not isinstance(lvl, Divisor):
@@ -99,7 +99,7 @@ class Column:
             width: float,
             x: int,
             y: int,
-            format: Dict = None,
+            column_format: Dict = None,
             cells: List[Cell] = None,
     ):
         self.name = name
@@ -107,20 +107,20 @@ class Column:
         self.x = x
         self.y = y
         self.n = 0
-        self.format = Format(format) if format else Format()
+        self.column_format = Format(column_format) if column_format else Format()
         self.cells = cells if cells else []
 
     def get_and_add_cell(
             self,
             data,
             data_format: Dict = None,
-            format: Dict = None,
+            column_format: Dict = None,
             merge_range=None,
             comments=None,
     ):
-        cell_format = self.format.update(format if format else dict())
+        cell_format = self.column_format.update(column_format if column_format else dict())
         cell = Cell(
-            data, self.x + self.n, self.y, data_format, cell_format, merge_range
+            data, self.x + self.n, self.y, data_format, cell_format, merge_range, comments
         )
         self.add_cell(cell)
 
@@ -152,7 +152,6 @@ class Table:
     ):
         self.name = name
         self.x, self.y = draw_from
-
         self.table_format = Format(table_format if table_format else dict())
         self.filter_option = filter_option
         self.columns = columns if columns else dict()
@@ -218,20 +217,33 @@ class Sheet:
     def __init__(self, name, set_zoom: int, freeze_panes: List[Tuple],
                  set_rows: List[Tuple],
                  set_columns: List[Tuple],
+                 sheet_format: Dict = None,
                  tables: Dict[str, Table] = None,
-                 images: Dict = None):
+                 images: Dict = None,
+                 cells: List = None):
         self.name = name
         self.set_zoom = set_zoom
         self.freeze_panes = freeze_panes
         self.set_rows = set_rows
         self.set_columns = set_columns
+        self.sheet_format = Format(sheet_format if sheet_format else dict())
         self.tables = tables if tables else dict()
         self.images = images if images else dict()
+        self.cells = cells if cells else list()
 
     def get_and_add_table(self, table_name, draw_from, table_format, filter_option) -> Table:
         self.tables[table_name] = Table(table_name, draw_from, table_format, filter_option)
 
         return self.tables[table_name]
+
+    def insert_cell(self, data, x, y,
+                    data_format: Dict = None, cell_format: Dict = None,
+                    merge_range: Tuple = None):
+        self.sheet_format.update(cell_format if cell_format else dict())
+        cell = Cell(data, x, y, data_format, cell_format, merge_range)
+        self.cells.append(cell)
+
+        return cell
 
     @staticmethod
     def merge(cells: List[Cell]):
