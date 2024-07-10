@@ -63,7 +63,7 @@ class Format(dict):
 class Cell:
     def __init__(
         self,
-        data: str,
+        data: Union[str, int, float],
         x: int,
         y: int,
         data_format: dict = None,
@@ -107,26 +107,25 @@ class Column:
         self.x = x
         self.y = y
         self.n = 0
-        self.column_format = Format(column_format) if column_format else Format()
+        self.column_format = Format(column_format if column_format else dict())
         self.cells = cells if cells else []
 
     def get_and_add_cell(
         self,
         data,
         data_format: Dict = None,
-        column_format: Dict = None,
+        cell_format: Dict = None,
         merge_range=None,
         comments=None,
     ):
-        cell_format = self.column_format.update(
-            column_format if column_format else dict()
-        )
         cell = Cell(
             data,
             self.x + self.n,
             self.y,
             data_format,
-            cell_format,
+            self.column_format.update(
+                cell_format if cell_format else dict()
+            ),
             merge_range,
             comments,
         )
@@ -165,13 +164,13 @@ class Table:
         self.columns = columns if columns else dict()
         self.n = 0
 
-    def get_and_add_column(self, name, width: float = 5.0, format: Dict = None):
+    def get_and_add_column(self, name, width: float = 5.0, column_format: Dict = None):
         col = Column(
             name,
             width,
             self.x,
             self.y + self.n,
-            self.table_format.update(format if format else dict()),
+            self.table_format.update(column_format if column_format else dict()),
         )
         self.add_column(col)
 
@@ -217,18 +216,9 @@ class Table:
 
 
 class Sheet:
-    def __init__(
-        self,
-        name,
-        set_zoom: int,
-        freeze_panes: List[Tuple],
-        set_rows: List[Tuple],
-        set_columns: List[Tuple],
-        sheet_format: Dict = None,
-        tables: Dict[str, Table] = None,
-        images: Dict = None,
-        cells: List = None,
-    ):
+    def __init__(self, name, set_zoom: int = 100, freeze_panes: List[Tuple] = None, set_rows: List[Tuple] = None,
+                 set_columns: List[Tuple] = None, sheet_format: Dict = None, tables: Dict[str, Table] = None,
+                 images: Dict = None, cells: List = None):
         self.name = name
         self.set_zoom = set_zoom
         self.freeze_panes = freeze_panes
@@ -239,11 +229,12 @@ class Sheet:
         self.images = images if images else dict()
         self.cells = cells if cells else list()
 
-    def get_and_add_table(
-        self, table_name, draw_from, table_format, filter_option
-    ) -> Table:
+    def get_and_add_table(self, table_name, draw_from="A1", table_format: dict = None, filter_option: bool = False) -> Table:
+        if isinstance(draw_from, str):
+            draw_from = self.convert_coordinate(draw_from)
+
         self.tables[table_name] = Table(
-            table_name, draw_from, table_format, filter_option
+            table_name, draw_from, self.sheet_format.update(table_format if table_format else dict()), filter_option
         )
 
         return self.tables[table_name]
@@ -284,7 +275,7 @@ class Sheet:
         # Convert row part to a zero-indexed number
         row_number = int(row_part) - 1
 
-        return (row_number, column_number)
+        return row_number, column_number
 
     @staticmethod
     def merge(cells: List[Cell]):

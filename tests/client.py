@@ -1,9 +1,9 @@
+import sys
 import re
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
-
-from excel_writer.excel_writer import ExcelExporter
-from excel_writer.structs import (
+from src.excel_writer.excel_writer import ExcelExporter
+from src.excel_writer.excel import (
     Sheet,
     Table,
     Column,
@@ -13,6 +13,7 @@ from excel_writer.structs import (
     Align,
     VAlign,
 )
+sys.path.append("../")
 
 
 def get_seq_format(
@@ -57,41 +58,31 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
     header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
 
     # ######################################## Make sheet ########################################
-    sheet = Sheet(
-        name="Students",
-        set_zoom=180,
-        freeze_panes=[(2, 0)],
-        set_rows=[(1, 20.25)],  # set header column height as 20.25
-        set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
-    )
+    sheet = Sheet(name="Students", set_zoom=180, freeze_panes=[(2, 0)], set_rows=[(1, 20.25)], set_columns=[(0, 0, 1)])
     # ######################################## Make table ########################################
 
-    table = sheet.get_and_add_table(
-        table_name="Records",
-        draw_from=(1, 1),
-        table_format=default_format,
-        filter_option=True,
-    )
+    table = sheet.get_and_add_table(table_name="Records", draw_from=(1, 1), table_format=default_format,
+                                    filter_option=True)
 
     # ######################################## Make columns ########################################
-    name_col = table.get_and_add_column("Name", width=13.5, format={"left": 2})
+    name_col = table.get_and_add_column("Name", width=13.5, column_format={"left": 2})
     name_col.get_and_add_cell(
-        "Name", column_format=header_format.font_color("white").bg_color("#E87A5D")
+        "Name", cell_format=header_format.font_color("white").bg_color("#E87A5D")
     )
 
     subject_col = table.get_and_add_column("Subject", width=20)
     subject_col.get_and_add_cell(
-        "Subject", column_format=header_format.font_color("#F3B941").bg_color("#3B5BA5")
+        "Subject", cell_format=header_format.font_color("#F3B941").bg_color("#3B5BA5")
     )
 
     score_col = table.get_and_add_column("Score", width=4.5)
     score_col.get_and_add_cell(
-        "Score", column_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D")
+        "Score", cell_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D")
     )
 
-    average_col = table.get_and_add_column("Average", width=8, format={"right": 2})
+    average_col = table.get_and_add_column("Average", width=8, column_format={"right": 2})
     average_col.get_and_add_cell(
-        "Average", column_format=header_format.font_color("#E87A5D").bg_color("#F3B941")
+        "Average", cell_format=header_format.font_color("#E87A5D").bg_color("#F3B941")
     )
 
     # ######################################## Make cells ########################################
@@ -136,40 +127,30 @@ def export_sequence_sheet(sequences: List[Tuple]):
     header_format = Format({"top": 2, "bottom": 2, "bold": True})
 
     # ######################################## Make sheet ########################################
-    sheet = Sheet(
-        name="Sequences",
-        set_zoom=180,
-        freeze_panes=[(2, 0)],
-        set_rows=[(1, 20.25)],  # set header column height as 20.25
-        set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
-    )
+    sheet = Sheet(name="Sequences", set_zoom=180, freeze_panes=[(2, 0)], set_rows=[(1, 20.25)], set_columns=[(0, 0, 1)])
 
     # ######################################## Make table ########################################
 
-    table = sheet.get_and_add_table(
-        table_name="TOM Result",
-        draw_from=(1, 1),
-        table_format=default_format,
-        filter_option=True,
-    )
+    table = sheet.get_and_add_table(table_name="TOM Result", draw_from=(1, 1), table_format=default_format,
+                                    filter_option=True)
 
     # ######################################## Make columns ########################################
-    project_col = table.get_and_add_column("Project", width=10.5, format={"left": 2})
+    project_col = table.get_and_add_column("Project", width=10.5, column_format={"left": 2})
     project_col.get_and_add_cell(
-        "Project", column_format=header_format.bg_color("#E87A5D")
+        "Project", cell_format=header_format.bg_color("#E87A5D")
     )
 
     set_col = table.get_and_add_column("Set", width=7)
-    set_col.get_and_add_cell("Set", column_format=header_format.bg_color("3B5BA5"))
+    set_col.get_and_add_cell("Set", cell_format=header_format.bg_color("3B5BA5"))
 
     type_col = table.get_and_add_column("Type", width=10)
-    type_col.get_and_add_cell("Type", column_format=header_format.bg_color("E87A5D"))
+    type_col.get_and_add_cell("Type", cell_format=header_format.bg_color("E87A5D"))
 
     sequence_col = table.get_and_add_column(
-        "Sequences", width=60, format={"align": "left", "right": 2}
+        "Sequences", width=60, column_format={"align": "left", "right": 2}
     )
     sequence_col.get_and_add_cell(
-        "Sequences", column_format=header_format.align(Align.CENTER).bg_color("F3B941")
+        "Sequences", cell_format=header_format.align(Align.CENTER).bg_color("F3B941")
     )
 
     # ######################################## Make cells ########################################
@@ -195,8 +176,16 @@ def export_sequence_sheet(sequences: List[Tuple]):
     return sheet
 
 
+def example_sheet():
+    sheet = Sheet("hello_sheet")
+    table = sheet.get_and_add_table("hello_table")
+    column = table.get_and_add_column("hello_column")
+    cell = column.get_and_add_cell("hello_cell")
+    return sheet
+
+
 def main(students, sequences, output_file_name="output.xlsx"):
-    sheets = [export_student_sheet(students), export_sequence_sheet(sequences)]
+    sheets = [export_student_sheet(students), export_sequence_sheet(sequences), example_sheet()]
     excel_exporter = ExcelExporter(output_file_name)
     excel_exporter.write_sheets(sheets)
 

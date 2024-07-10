@@ -5,7 +5,7 @@ from ast import literal_eval
 from typing import Dict, List, Tuple
 import xlsxwriter
 
-from .structs import Sheet, Table
+from .excel import Sheet, Table
 
 
 class SingletonMeta(type):
@@ -63,15 +63,17 @@ class ExcelSheetWriter:
         if self.sheet_data.set_zoom:
             self.sheet.set_zoom(self.sheet_data.set_zoom)
 
-        for set_row in self.sheet_data.set_rows:
-            self.sheet.set_row(*set_row)
+        if self.sheet_data.set_rows:
+            for set_row in self.sheet_data.set_rows:
+                self.sheet.set_row(*set_row)
 
-        for set_columns in self.sheet_data.set_columns:
-            self.sheet.set_column(*set_columns)
-
-        for table in self.sheet_data.tables.values():
-            for column in table.columns.values():
-                self.sheet.set_column(column.y, column.y, width=float(column.width))
+        if self.sheet_data.set_columns:
+            for set_columns in self.sheet_data.set_columns:
+                self.sheet.set_column(*set_columns)
+        if self.sheet_data.tables:
+            for table in self.sheet_data.tables.values():
+                for column in table.columns.values():
+                    self.sheet.set_column(column.y, column.y, width=float(column.width))
 
     def __parse_cell_format(self, cell_format: Dict = None):
         """Convert 'dictionary' data type to pre-defined 'xlsx format object' and return

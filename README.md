@@ -63,72 +63,75 @@ And your goal is to draw a table as above.
 
 ##### 1. Make Sheet
 ```python
-    # ######################################## Make sheet ########################################
-    sheet = Sheet(
-        name="Students", set_zoom=180, freeze_panes=[(2, 0)],
-        set_rows=[(1, 20.25)],  # set header column height as 20.25
-        set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
-    )
+# ######################################## Make sheet ########################################
+default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
+                     "bold": False, "left": 7, "right": 7})
+sheet = Sheet(
+    name="Students", set_zoom=180, freeze_panes=[(2, 0)], sheet_format=default_format,
+    set_rows=[(1, 20.25)],  # set header column height as 20.25
+    set_columns=[(0, 0, 1)],  # set 0 to 0 column width as 1
+)
 ```
 
 ##### 2. Make Format && Table
+
 ```python
-    # ######################################## Make table ########################################
-    default_format = Format({"align": "center", "valign": "vcenter", "font_size": 10,
-                             "bold": False, "left": 7, "right": 7})
-    header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
-    table = sheet.get_and_add_table(table_name="Records", draw_from=(1, 1), table_format=default_format,
-                                    filter_option=True)
+# ######################################## Make table ########################################
+table = sheet.get_and_add_table(table_name="Records", draw_from=(1, 1), table_format=default_format, filter_option=True)
 ```
 
 ##### 3. Make Column
 
 ```python
     # ######################################## Make columns ########################################
-name_col = table.get_and_add_column("Name", width=13.5, format={"left": 2})
-name_col.get_and_add_cell("Name", column_format=header_format.font_color("white").bg_color("#E87A5D"))
-
+name_col = table.get_and_add_column("Name", width=13.5, column_format={"left": 2})
 subject_col = table.get_and_add_column("Subject", width=20)
-subject_col.get_and_add_cell("Subject", column_format=header_format.font_color("#F3B941").bg_color("#3B5BA5"))
-
 score_col = table.get_and_add_column("Score", width=4.5)
-score_col.get_and_add_cell("Score", column_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D"))
-
-average_col = table.get_and_add_column("Average", width=8, format={"right": 2})
-average_col.get_and_add_cell("Average", column_format=header_format.font_color("#E87A5D").bg_color("#F3B941"))
+average_col = table.get_and_add_column("Average", width=8, column_format={"right": 2})
 ```
 
-#### 4. Make Cells
+#### 4-1. Make Header Cells
 ```python
-  # ######################################## Make cells ########################################
 
-    for student_name, records in students.items():
-        total = 0
-        to_be_merged = []
-        for subject, score in records:
-            name_col.get_and_add_cell(student_name)
-            subject_col.get_and_add_cell(subject)
-            score_col.get_and_add_cell(score)
-            total += score
+header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
+name_col.get_and_add_cell("Name", cell_format=header_format.font_color("white").bg_color("#E87A5D"))
+subject_col.get_and_add_cell("Subject", cell_format=header_format.font_color("#F3B941").bg_color("#3B5BA5"))
+score_col.get_and_add_cell("Score", cell_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D"))
+average_col.get_and_add_cell("Average", cell_format=header_format.font_color("#E87A5D").bg_color("#F3B941"))
 
-        for _ in range(len(records)):
-            cell = average_col.get_and_add_cell(round(total / len(records), 2))
-            to_be_merged.append(cell)
-
-        sheet.merge(to_be_merged)
-        table.draw_division(lvl=Divisor.NORMAL)
-    table.draw_division(lvl=Divisor.THICK)
 ```
-#### 5. Use show method for debug
+
+#### 4-2. Make Body Cells
+```python
+# ######################################## Make cells ########################################
+
+for student_name, records in students.items():
+    total = 0
+    to_be_merged = []
+    for subject, score in records:
+        name_col.get_and_add_cell(student_name)
+        subject_col.get_and_add_cell(subject)
+        score_col.get_and_add_cell(score)
+        total += score
+
+    for _ in range(len(records)):
+        cell = average_col.get_and_add_cell(round(total / len(records), 2))
+        to_be_merged.append(cell)
+
+    sheet.merge(to_be_merged)
+    table.draw_division(lvl=Divisor.NORMAL)
+table.draw_division(lvl=Divisor.THICK)
+```
+#### 4-3. Use show method for debug
 ```python
     table.show()
 ```
 
-#### 6. Generate Excel
+#### 5. Generate Excel
 ```python
-    sheets = [sheet]
-    excel_exporter = ExcelExporter("output.xlsx") # excel file name
-    excel_exporter.write_sheets(sheets)
+sheets = [sheet]
+excel_exporter = ExcelExporter("output.xlsx") # excel file name
+excel_exporter.write_sheets(sheets)  # note that you pass the list of sheet objects, not a sheet object
 ```
 
 
