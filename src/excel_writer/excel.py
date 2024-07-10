@@ -5,6 +5,23 @@ from itertools import zip_longest
 from enum import Enum
 
 
+def convert_coordinate(coordinate):
+    column_part = "".join([char for char in coordinate if char.isalpha()])
+    row_part = "".join([char for char in coordinate if char.isdigit()])
+
+    # Convert column letters to a zero-indexed number
+    column_number = 0
+    for char in column_part:
+        column_number = column_number * 26 + (ord(char.upper()) - ord("A") + 1)
+
+    column_number -= 1
+
+    # Convert row part to a zero-indexed number
+    row_number = int(row_part) - 1
+
+    return row_number, column_number
+
+
 class Divisor(Enum):
     THICK = 2
     DOTTED = 7
@@ -164,7 +181,7 @@ class Table:
         self.columns = columns if columns else dict()
         self.n = 0
 
-    def get_and_add_column(self, name, width: float = 5.0, column_format: Dict = None):
+    def get_and_add_column(self, name, width: float = 5.0, column_format: Dict = None) -> Column:
         col = Column(
             name,
             width,
@@ -175,6 +192,10 @@ class Table:
         self.add_column(col)
 
         return col
+
+    def get_column(self, col_name) -> Column:
+
+        return self.columns[col_name]
 
     def add_column(self, col: Column):
         self.n += 1
@@ -231,13 +252,21 @@ class Sheet:
 
     def get_and_add_table(self, table_name, draw_from="A1", table_format: dict = None, filter_option: bool = False) -> Table:
         if isinstance(draw_from, str):
-            draw_from = self.convert_coordinate(draw_from)
+            draw_from = convert_coordinate(draw_from)
 
-        self.tables[table_name] = Table(
+        table = Table(
             table_name, draw_from, self.sheet_format.update(table_format if table_format else dict()), filter_option
         )
+        self.add_table(table)
+
+        return table
+
+    def get_table(self, table_name):
 
         return self.tables[table_name]
+
+    def add_table(self, table: Table):
+        self.tables[table.name] = table
 
     def insert_cell(
         self,
@@ -248,7 +277,7 @@ class Sheet:
         merge_range: Tuple = None,
     ):
         if isinstance(coordinate, str):
-            x, y = self.convert_coordinate(coordinate)
+            x, y = convert_coordinate(coordinate)
         elif isinstance(coordinate, tuple):
             x, y = map(int, coordinate)
         else:
@@ -259,23 +288,6 @@ class Sheet:
         self.cells.append(cell)
 
         return cell
-
-    @staticmethod
-    def convert_coordinate(coordinate):
-        column_part = "".join([char for char in coordinate if char.isalpha()])
-        row_part = "".join([char for char in coordinate if char.isdigit()])
-
-        # Convert column letters to a zero-indexed number
-        column_number = 0
-        for char in column_part:
-            column_number = column_number * 26 + (ord(char.upper()) - ord("A") + 1)
-
-        column_number -= 1
-
-        # Convert row part to a zero-indexed number
-        row_number = int(row_part) - 1
-
-        return row_number, column_number
 
     @staticmethod
     def merge(cells: List[Cell]):

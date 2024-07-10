@@ -12,25 +12,26 @@ from .excel import Sheet, Table
 
 class ExcelWriter(Workbook):
     def __init__(self, filename: str, sheets: List[Sheet]):
-        """This class writes the excel file.
+        """Initialize the ExcelWriter with a filename and a list of sheets.
 
         Args:
-            sheet: a excel sheet to be written
-            sheet_config: sheet configuration dataclass such as 'table zoom, header width, starting point to write'
+            filename (str): The name of the Excel file to be created.
+            sheets (List[Sheet]): A list of Sheet objects to be written to the Excel file.
         """
         super().__init__(filename)
         self.filename = filename
         self.sheets = sheets
 
     def __parse_data_format(self, data: str, cell_format: Dict, data_format: Dict):
-        """Return the list chained each data and format with multiple formats
+        """Return a list of tuples containing formats and characters for formatted strings.
 
         Args:
-            data: data string to be formatted each characters
-            cell_format: this format set to each data string format
-            data_format: a dictionary data type with color format
+            data (str): The string data to be formatted.
+            cell_format (Dict): The default cell format to apply.
+            data_format (Dict): A dictionary specifying formatting for substrings of the data.
 
-        Return: A list of format and data in order
+        Returns:
+            List[tuple]: A list of tuples where each tuple contains a format and a character.
         """
         format_list = [
             self.add_format(
@@ -59,6 +60,14 @@ class ExcelWriter(Workbook):
         return list(chain.from_iterable(zip(format_list, data)))
 
     def __init_sheet(self, sheet_data: Sheet):
+        """Initialize and configure an Excel worksheet based on the provided Sheet data.
+
+        Args:
+            sheet_data (Sheet): A Sheet object containing the configuration and data for the worksheet.
+
+        Returns:
+            xlsxwriter.worksheet.Worksheet: The initialized and configured worksheet.
+        """
         sheet = self.add_worksheet(sheet_data.name)
         if sheet_data.freeze_panes:
             for freeze_pane in sheet_data.freeze_panes:
@@ -82,9 +91,13 @@ class ExcelWriter(Workbook):
         return sheet
 
     def write_excel_sheets(self):
-        """Write Excel sheets added from 'add_sheet' function
+        """Write all the Excel sheets defined in the 'sheets' list to the Excel file.
 
-        Note: xlsxwritter automatically closed, because workbook closed in this function
+        This method initializes each sheet, writes data and configurations to them,
+        and closes the workbook, which finalizes the Excel file.
+
+        Note:
+            The workbook is automatically closed by xlsxwriter once this method completes.
         """
         for sheet_data in self.sheets:
             sheet = self.__init_sheet(sheet_data)
@@ -93,6 +106,16 @@ class ExcelWriter(Workbook):
         self.close()
 
     def __write_excel_sheet(self, sheet: xlsxwriter.worksheet.Worksheet, sheet_data: Sheet):
+        """Write data, tables, images, and formatted cells to an Excel worksheet.
+
+        This method processes the tables, images, and individual cells defined in the
+        Sheet object and writes them to the provided worksheet. It also configures the
+        worksheet to ignore specific Excel errors.
+
+        Args:
+            sheet (xlsxwriter.worksheet.Worksheet): The worksheet to write data to.
+            sheet_data (Sheet): A Sheet object containing the data and configurations to write.
+        """
         for table in sheet_data.tables.values():
             self.__write_table(sheet, table)
 
@@ -124,6 +147,16 @@ class ExcelWriter(Workbook):
         sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
     def __write_table(self, sheet: xlsxwriter.worksheet.Worksheet, table: Table):
+        """Write a table's data, formats, merged cells, and comments to an Excel worksheet.
+
+         This method processes each column and cell in the provided Table object and writes
+         the data to the given worksheet. It handles regular data, rich strings with multiple
+         formats, merged cells, and comments. Additionally, it sets up an auto filter if specified.
+
+         Args:
+             sheet (xlsxwriter.worksheet.Worksheet): The worksheet to write the table data to.
+             table (Table): A Table object containing the columns and cell data to write.
+         """
         merge_dict = defaultdict(list)
         for column in table.columns.values():
             for cell in column.cells:
