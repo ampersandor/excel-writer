@@ -2,7 +2,7 @@ import sys
 import re
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
-from src.excel_writer.excel_writer import ExcelExporter
+from src.excel_writer.excel_writer import ExcelWriter
 from src.excel_writer.excel import (
     Sheet,
     Table,
@@ -186,8 +186,8 @@ def example_sheet():
 
 def main(students, sequences, output_file_name="output.xlsx"):
     sheets = [export_student_sheet(students), export_sequence_sheet(sequences), example_sheet()]
-    excel_exporter = ExcelExporter(output_file_name)
-    excel_exporter.write_sheets(sheets)
+    ew = ExcelWriter(filename=output_file_name, sheets=sheets)
+    ew.write_excel_sheets()
 
     return output_file_name
 

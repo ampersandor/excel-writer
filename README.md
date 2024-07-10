@@ -130,8 +130,8 @@ table.draw_division(lvl=Divisor.THICK)
 #### 5. Generate Excel
 ```python
 sheets = [sheet]
-excel_exporter = ExcelExporter("output.xlsx") # excel file name
-excel_exporter.write_sheets(sheets)  # note that you pass the list of sheet objects, not a sheet object
+excel_exporter = ExcelWriter("output.xlsx", sheets) # excel file name
+excel_exporter.write_excel_sheets()  # note that you pass the list of sheet objects, not a sheet object
 ```
 
 
