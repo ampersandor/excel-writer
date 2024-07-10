@@ -9,8 +9,9 @@ from src.excel_writer.excel import (
     Column,
     Cell,
     Format,
-    Divisor,
+    Line,
     Align,
+    Border,
     VAlign,
 )
 sys.path.append("../")
@@ -55,7 +56,8 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
             "right": 7,
         }
     )
-    header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
+    # header_format = Format({"bg_color": "#FDE9D9", "top": 2, "bottom": 2, "bold": True})
+    header_format = Format().bg_color("#FDE9D9").border(Border.TOP, Line.THICK).border(Border.BOTTOM, Line.THICK).bold()
 
     # ######################################## Make sheet ########################################
     sheet = Sheet(name="Students", set_zoom=180, freeze_panes=[(2, 0)], set_rows=[(1, 20.25)], set_columns=[(0, 0, 1)])
@@ -101,8 +103,8 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
             to_be_merged.append(cell)
 
         sheet.merge(to_be_merged)
-        table.draw_division(lvl=Divisor.NORMAL)
-    table.draw_division(lvl=Divisor.THICK)
+        table.draw_division(lvl=Line.NORMAL)
+    table.draw_division(lvl=Line.THICK)
 
     table.show()
 
@@ -163,8 +165,8 @@ def export_sequence_sheet(sequences: List[Tuple]):
         type_col.get_and_add_cell(type)
         sequence_col.get_and_add_cell(sequence, data_format=get_seq_format(sequence))
 
-        table.draw_division(lvl=Divisor.NORMAL)
-    table.draw_division(lvl=Divisor.THICK)
+        table.draw_division(lvl=Line.NORMAL)
+    table.draw_division(lvl=Line.THICK)
     table.show()
 
     for project_list in project_dict.values():

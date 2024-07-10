@@ -22,10 +22,13 @@ def convert_coordinate(coordinate):
     return row_number, column_number
 
 
-class Divisor(Enum):
-    THICK = 2
-    DOTTED = 7
+class Line(Enum):
     NORMAL = 1
+    THICK = 2
+    DASH = 3
+    DOT = 4
+    FAT = 5
+    THIN = 7
 
 
 class Align(Enum):
@@ -40,6 +43,13 @@ class VAlign(Enum):
     BOTTOM = "bottom"
 
 
+class Border(Enum):
+    TOP = "top"
+    BOTTOM = "bottom"
+    LEFT = "left"
+    RIGHT = "right"
+
+
 class Format(dict):
     def __init__(self, *args):
         default = {"color": "black", "font_name": "Courier new", "font_size": 10}
@@ -52,11 +62,14 @@ class Format(dict):
             dict.update(new_format, *args)
         return new_format
 
-    def divisor(self, lvl: Divisor):
+    def divisor(self, lvl: Line):
         return self.update({"bottom": lvl.value})
 
     def bg_color(self, val):
         return self.update({"bg_color": val})
+
+    def bold(self, val=True):
+        return self.update({"bold": val})
 
     def font_name(self, val):
         return self.update({"font_name": val})
@@ -72,6 +85,9 @@ class Format(dict):
 
     def valign(self, val: VAlign):
         return self.update({"valign": val.value})
+
+    def border(self, border: Border, line: Line):
+        return self.update({border.value: line.value})
 
     def __str__(self):
         return str(dict(self))
@@ -96,8 +112,8 @@ class Cell:
         self.merge_range = merge_range
         self.comments = comments
 
-    def draw_division(self, lvl: Divisor):
-        if not isinstance(lvl, Divisor):
+    def draw_division(self, lvl: Line):
+        if not isinstance(lvl, Line):
             raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
 
         self.cell_format = self.cell_format.divisor(lvl)
@@ -158,8 +174,8 @@ class Column:
         for cell in cells:
             self.add_cell(cell)
 
-    def draw_division(self, lvl: Divisor, row_num: int = -1):
-        if not isinstance(lvl, Divisor):
+    def draw_division(self, lvl: Line, row_num: int = -1):
+        if not isinstance(lvl, Line):
             raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
 
         self.cells[row_num].draw_division(lvl)
@@ -205,8 +221,8 @@ class Table:
         for col in cols:
             self.add_column(col)
 
-    def draw_division(self, lvl: Divisor, row_num: int = -1):
-        if not isinstance(lvl, Divisor):
+    def draw_division(self, lvl: Line, row_num: int = -1):
+        if not isinstance(lvl, Line):
             raise ValueError("Invalid lvl value. Must be an instance of Level Divisor.")
 
         for column in self.columns.values():
@@ -261,11 +277,11 @@ class Sheet:
 
         return table
 
-    def get_table(self, table_name):
+    def get_table(self, table_name) -> Table:
 
         return self.tables[table_name]
 
-    def add_table(self, table: Table):
+    def add_table(self, table: Table) -> None:
         self.tables[table.name] = table
 
     def insert_cell(
@@ -275,7 +291,7 @@ class Sheet:
         data_format: Dict = None,
         cell_format: Dict = None,
         merge_range: Tuple = None,
-    ):
+    ) -> Cell:
         if isinstance(coordinate, str):
             x, y = convert_coordinate(coordinate)
         elif isinstance(coordinate, tuple):
@@ -314,5 +330,5 @@ if __name__ == "__main__":
     print(format3)
     print(format2)
 
-    num = Sheet("", 3, [(0, 0)], [(0, 0)], [(0, 0)]).convert_coordinate("AA1")
+    num = convert_coordinate("AA1")
     print(num)
