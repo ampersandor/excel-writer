@@ -73,7 +73,7 @@ class ExcelSheetWriter:
             for column in table.columns.values():
                 self.sheet.set_column(column.y, column.y, width=float(column.width))
 
-    def __parse_cell_format(self, cell_format : Dict =None):
+    def __parse_cell_format(self, cell_format: Dict = None):
         """Convert 'dictionary' data type to pre-defined 'xlsx format object' and return
 
         Args:
@@ -138,7 +138,7 @@ class ExcelSheetWriter:
                     cell.x,
                     cell.y,
                     cell.data,
-                    self.__parse_cell_format(cell.cell_format)
+                    self.__parse_cell_format(cell.cell_format),
                 )
                 if cell.data_format:
                     data_format = self.__parse_data_format(
@@ -162,7 +162,7 @@ class ExcelSheetWriter:
                     cell.x,
                     cell.y,
                     cell.data,
-                    self.__parse_cell_format(cell.cell_format)
+                    self.__parse_cell_format(cell.cell_format),
                 )
 
                 # Write a "rich" string with multiple formats to a worksheet cell.
@@ -211,4 +211,3 @@ class ExcelSheetWriter:
                 table.x + len(table.columns[list(table.columns.keys())[0]].cells),
                 table.y + table.n - 1,
             )
-

@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 from copy import deepcopy
 from texttable import Texttable
 from itertools import zip_longest
@@ -62,14 +62,14 @@ class Format(dict):
 
 class Cell:
     def __init__(
-            self,
-            data: str,
-            x: int,
-            y: int,
-            data_format: dict = None,
-            cell_format: dict = None,
-            merge_range: tuple = None,
-            comments: dict = None,
+        self,
+        data: str,
+        x: int,
+        y: int,
+        data_format: dict = None,
+        cell_format: dict = None,
+        merge_range: tuple = None,
+        comments: dict = None,
     ):
         self.data = str(data)
         self.x = x
@@ -94,13 +94,13 @@ class Cell:
 
 class Column:
     def __init__(
-            self,
-            name: str,
-            width: float,
-            x: int,
-            y: int,
-            column_format: Dict = None,
-            cells: List[Cell] = None,
+        self,
+        name: str,
+        width: float,
+        x: int,
+        y: int,
+        column_format: Dict = None,
+        cells: List[Cell] = None,
     ):
         self.name = name
         self.width = width
@@ -111,16 +111,24 @@ class Column:
         self.cells = cells if cells else []
 
     def get_and_add_cell(
-            self,
-            data,
-            data_format: Dict = None,
-            column_format: Dict = None,
-            merge_range=None,
-            comments=None,
+        self,
+        data,
+        data_format: Dict = None,
+        column_format: Dict = None,
+        merge_range=None,
+        comments=None,
     ):
-        cell_format = self.column_format.update(column_format if column_format else dict())
+        cell_format = self.column_format.update(
+            column_format if column_format else dict()
+        )
         cell = Cell(
-            data, self.x + self.n, self.y, data_format, cell_format, merge_range, comments
+            data,
+            self.x + self.n,
+            self.y,
+            data_format,
+            cell_format,
+            merge_range,
+            comments,
         )
         self.add_cell(cell)
 
@@ -143,12 +151,12 @@ class Column:
 
 class Table:
     def __init__(
-            self,
-            name: str,
-            draw_from: Tuple[int, int],
-            table_format: Dict = None,
-            filter_option: bool = False,
-            columns: Dict[str, Column] = None,
+        self,
+        name: str,
+        draw_from: Tuple[int, int],
+        table_format: Dict = None,
+        filter_option: bool = False,
+        columns: Dict[str, Column] = None,
     ):
         self.name = name
         self.x, self.y = draw_from
@@ -157,12 +165,7 @@ class Table:
         self.columns = columns if columns else dict()
         self.n = 0
 
-    def get_and_add_column(
-            self,
-            name,
-            width: float = 5.0,
-            format: Dict = None
-    ):
+    def get_and_add_column(self, name, width: float = 5.0, format: Dict = None):
         col = Column(
             name,
             width,
@@ -206,7 +209,7 @@ class Table:
                 col_size.append(5)
         t.set_cols_width(col_size)
         for row in zip_longest(
-                *[column.cells for col_name, column in self.columns.items()]
+            *[column.cells for col_name, column in self.columns.items()]
         ):
             t.add_row(row)
         print(f"[{self.name}]")
@@ -214,13 +217,18 @@ class Table:
 
 
 class Sheet:
-    def __init__(self, name, set_zoom: int, freeze_panes: List[Tuple],
-                 set_rows: List[Tuple],
-                 set_columns: List[Tuple],
-                 sheet_format: Dict = None,
-                 tables: Dict[str, Table] = None,
-                 images: Dict = None,
-                 cells: List = None):
+    def __init__(
+        self,
+        name,
+        set_zoom: int,
+        freeze_panes: List[Tuple],
+        set_rows: List[Tuple],
+        set_columns: List[Tuple],
+        sheet_format: Dict = None,
+        tables: Dict[str, Table] = None,
+        images: Dict = None,
+        cells: List = None,
+    ):
         self.name = name
         self.set_zoom = set_zoom
         self.freeze_panes = freeze_panes
@@ -231,14 +239,30 @@ class Sheet:
         self.images = images if images else dict()
         self.cells = cells if cells else list()
 
-    def get_and_add_table(self, table_name, draw_from, table_format, filter_option) -> Table:
-        self.tables[table_name] = Table(table_name, draw_from, table_format, filter_option)
+    def get_and_add_table(
+        self, table_name, draw_from, table_format, filter_option
+    ) -> Table:
+        self.tables[table_name] = Table(
+            table_name, draw_from, table_format, filter_option
+        )
 
         return self.tables[table_name]
 
-    def insert_cell(self, data, x, y,
-                    data_format: Dict = None, cell_format: Dict = None,
-                    merge_range: Tuple = None):
+    def insert_cell(
+        self,
+        data: str,
+        coordinate: Union[str, Tuple],
+        data_format: Dict = None,
+        cell_format: Dict = None,
+        merge_range: Tuple = None,
+    ):
+        if isinstance(coordinate, str):
+            x, y = self.convert_coordinate(coordinate)
+        elif isinstance(coordinate, tuple):
+            x, y = map(int, coordinate)
+        else:
+            raise ValueError("The coordinate must be either 'A1' or (0, 0)")
+
         self.sheet_format.update(cell_format if cell_format else dict())
         cell = Cell(data, x, y, data_format, cell_format, merge_range)
         self.cells.append(cell)
@@ -246,8 +270,28 @@ class Sheet:
         return cell
 
     @staticmethod
+    def convert_coordinate(coordinate):
+        column_part = "".join([char for char in coordinate if char.isalpha()])
+        row_part = "".join([char for char in coordinate if char.isdigit()])
+
+        # Convert column letters to a zero-indexed number
+        column_number = 0
+        for char in column_part:
+            column_number = column_number * 26 + (ord(char.upper()) - ord("A") + 1)
+
+        column_number -= 1
+
+        # Convert row part to a zero-indexed number
+        row_number = int(row_part) - 1
+
+        return (row_number, column_number)
+
+    @staticmethod
     def merge(cells: List[Cell]):
-        min_range, max_range = (float("inf"), float("inf")), (float("-inf"), float("-inf"))
+        min_range, max_range = (float("inf"), float("inf")), (
+            float("-inf"),
+            float("-inf"),
+        )
 
         for cell in cells:
             min_range = min(min_range, cell.get_range())
@@ -266,3 +310,6 @@ if __name__ == "__main__":
     format3 = format2.update({"color": "pink"})
     print(format3)
     print(format2)
+
+    num = Sheet("", 3, [(0, 0)], [(0, 0)], [(0, 0)]).convert_coordinate("AA1")
+    print(num)
