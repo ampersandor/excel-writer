@@ -1,7 +1,5 @@
 ##  1.0.0
 
-![image](https://github.com/ampersandor/excel-writer/assets/57800485/6ef0fb11-f8f8-4d95-9bb6-12d0d17bac65)
-
 
 <details>
     <summary>Table of content</summary>
@@ -17,7 +15,9 @@
 
 ## About
 
-**excel-writer** is a Python project that provides a custom framework built on the xlsxwriter library. This framework allows you to create Table, Column, Cell and Format objects to simplify and standardize the process of generating Excel files. By using excel-writer, you can clean up your code and ensure consistency across your Excel generation scripts.
+**excel-writer** is a Python project that provides a custom framework built on the xlsxwriter library. This framework allows you to create Sheet, Table, Column, Cell and Format objects to simplify and standardize the process of generating Excel files. By using excel-writer, you can clean up your code and ensure consistency across your Excel generation scripts.
+
+<img src="https://github.com/user-attachments/assets/3b552e59-544f-42ed-b6af-53745d3c15b2" width="50%">
 
 ## Getting Started
 ### Prerequisite
@@ -28,21 +28,30 @@
 
 #### To include in your library
 ```bash
-pip3 install git+https://github.com/ampersandor/excel-writer.git
+TOKEN=YOURHTTPSTOKEN
+pip install "git+https://${TOKEN}@github.com/seegenelab/excel-writer@main"
+# or if you have ssh key
+# pip install git+ssh://git@github.com/seegenelab/excel-writer.git
+
+
 ```
 #### To develop and customize
 ```commandline
-git clone https://github.com/ampersandor/excel-writer.git
+git clone git@github.com:seegenelab/excel-writer.git
+cd excel-writer
 poetry install
 poetry shell
+
+# if you want to build
+poetry build
 ```
 
 ### How to use
 
-#### Use Example
+#### Use Existing Example
 The client script shows an example about how to use the library.
 ```bash
-git clone https://github.com/ampersandor/excel-writer.git
+git clone git@github.com:seegenelab/excel-writer.git
 cd excel-writer/tests
 python3 client.py
 ```
@@ -51,15 +60,21 @@ python3 client.py
 Suppose you have a data as below, and you need to make a table with column name, subject, score, and average score.
 ```python
 students = {
-    "DongHun Kim": [("Math", 99), ("Biology", 60), ("Computer Science", 100)],
-    "Jiyeon Yoo": [("Math", 70), ("Biology", 90)],
-    "William Kim": [("Music", 59), ("Art", 73)],
-    "Judy Yoo": [("Math", 54), ("Computer Science", 55)],
+    "DongHun Kim": [("Music", 55), ("Math", 100), ("Biology", 60), ("Computer Science", 100)],
+    "Sanghwa Han": [("Math", 100), ("Biology", 90), ("Computer Science", 100)],
+    "Wonkyung Lee": [("Music", 98), ("Art", 99), ("Biology", 100)],
+    "Bokyu Shin": [("Math", 99), ("Computer Science", 100)],
 }
 ```
-<img src = "https://github.com/ampersandor/excel-writer/assets/57800485/6317de1b-71b4-49db-a2d9-1e8b9ae72dc7" width="50%" height="50%">  
+<img src="https://github.com/user-attachments/assets/fee5f287-2032-4c74-80c2-c5f9122b1e25" width="50%">
 
 And your goal is to draw a table as above.
+
+##### 0. Import necessary library
+```python
+from excel_writer.excel_writer import ExcelWriter
+from excel_writer.excel import Sheet, Format, Line, Align, Border
+```
 
 ##### 1. Make Sheet
 ```python
