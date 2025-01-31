@@ -52,8 +52,14 @@ class Border(Enum):
 
 class Format(dict):
     def __init__(self, *args):
-        default = {"color": "black", "font_name": "Courier new", "font_size": 10}
-        default.update(*args)
+        default = {"color": "black", "font_name": "Courier new", "font_size": 10, "rotation": 0}
+        for arg in args:
+            for key, value in arg.items():
+                if type(value) in [Line, Align, VAlign, Border]:
+                    default[key] = value.value
+                else:
+                    default[key] = value
+                
         super().__init__(default)
 
     def update(self, *args):
@@ -89,6 +95,9 @@ class Format(dict):
     def border(self, border: Border, line: Line):
         return self.update({border.value: line.value})
 
+    def rotation(self, val: int):
+        return self.update({"rotation": val})
+
     def __str__(self):
         return str(dict(self))
 
@@ -103,6 +112,7 @@ class Cell:
         cell_format: dict = None,
         merge_range: tuple = None,
         comments: dict = None,
+        url: str = None
     ):
         self.data = str(data)
         self.x = x
@@ -111,6 +121,7 @@ class Cell:
         self.cell_format = cell_format if cell_format else Format()
         self.merge_range = merge_range
         self.comments = comments
+        self.url = url
 
     def draw_division(self, lvl: Line):
         if not isinstance(lvl, Line):
@@ -150,6 +161,7 @@ class Column:
         cell_format: Dict = None,
         merge_range=None,
         comments=None,
+        url=None,
     ):
         cell = Cell(
             data,
@@ -161,6 +173,7 @@ class Column:
             ),
             merge_range,
             comments,
+            url,
         )
         self.add_cell(cell)
 
@@ -291,6 +304,8 @@ class Sheet:
         data_format: Dict = None,
         cell_format: Dict = None,
         merge_range: Tuple = None,
+        comments: Dict = None,
+        url: str = None,
     ) -> Cell:
         if isinstance(coordinate, str):
             x, y = convert_coordinate(coordinate)
@@ -300,10 +315,34 @@ class Sheet:
             raise ValueError("The coordinate must be either 'A1' or (0, 0)")
 
         self.sheet_format.update(cell_format if cell_format else dict())
-        cell = Cell(data, x, y, data_format, cell_format, merge_range)
+        cell = Cell(data, x, y, data_format, cell_format, merge_range, comments, url)
         self.cells.append(cell)
 
         return cell
+
+    def insert_image(
+            self,
+            image_data: bytes,
+            coordinate: Union[str, Tuple],
+            options: Dict = None,
+    ):
+        if isinstance(coordinate, str):
+            x, y = convert_coordinate(coordinate)
+        elif isinstance(coordinate, tuple):
+            x, y = map(int, coordinate)
+        else:
+            raise ValueError("The coordinate must be either 'A1' or (0, 0)")
+
+        # self.images[str((x, y))] = image_data
+        options = options if options else {}
+
+        self.images[str((x, y))] = {
+            'data': image_data,
+            'x_offset': options.get('x_offset', 0),
+            'y_offset': options.get('y_offset', 0),
+            'x_scale': options.get('x_scale', 1),
+            'y_scale': options.get('y_scale', 1),
+        }
 
     @staticmethod
     def merge(cells: List[Cell]):
@@ -318,17 +357,3 @@ class Sheet:
 
         for cell in cells:
             cell.merge_range = (min_range, max_range)
-
-
-if __name__ == "__main__":
-    format1 = Format()
-    print(format1)
-    format2 = Format({"color": "red"})
-    print(format2)
-
-    format3 = format2.update({"color": "pink"})
-    print(format3)
-    print(format2)
-
-    num = convert_coordinate("AA1")
-    print(num)

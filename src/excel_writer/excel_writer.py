@@ -7,7 +7,7 @@ from typing import Dict, List
 import xlsxwriter.worksheet
 from xlsxwriter import Workbook
 
-from .excel import Sheet, Table
+from .excel import Sheet, Table, Cell
 
 
 class ExcelWriter(Workbook):
@@ -105,6 +105,86 @@ class ExcelWriter(Workbook):
 
         self.close()
 
+    def __write_cells(self, merge_dict: Dict, cells: List[Cell], sheet: Sheet):
+        """ write a "rich" string with multiple formats to a worksheet cell and merge cells and write data into cells
+
+        Args:
+            merge_dict (Dict): A dictionary with tuples as keys for cell ranges to be merged and values as the cell data.
+            cells: List of Sheet, Cell, and Table Objects
+            sheet (Sheet): A Sheet object containing the configuration and data for the worksheet.
+
+        Returns:
+
+        """
+        for cell in cells:
+            cell_format = self.add_format(cell.cell_format)
+
+            # Write generic data to a worksheet cell.
+
+            if cell.url:
+                sheet.write_url(
+                    cell.x,
+                    cell.y,
+                    cell.url,
+                    string=cell.data,
+                    cell_format=cell_format,
+                )
+            else:
+                sheet.write(
+                    cell.x,
+                    cell.y,
+                    cell.data,
+                    cell_format,
+                )
+
+            # Write a "rich" string with multiple formats to a worksheet cell.
+            if cell.data_format:
+                data_format = self.__parse_data_format(
+                    cell.data, cell.cell_format, cell.data_format
+                )
+                sheet.write_rich_string(
+                    cell.x,
+                    cell.y,
+                    *data_format,
+                    cell_format,
+                )
+            if cell.merge_range:
+                min_range, max_range = cell.merge_range
+                key = (
+                    tuple(min_range),
+                    tuple(max_range),
+                )  # make sure that it is not list
+                merge_dict[key].append(cell)
+            # Add cell comments
+            if cell.comments:
+                sheet.write_comment(cell.x, cell.y, cell.comments["data"])
+
+        return
+
+    def __merge_cells_and_write_data(self, merge_dict, sheet):
+        """ merge cells and write data into cells
+
+        Args:
+            merge_dict (Dict): data to merge in dict.
+            sheet (Sheet): A Sheet object containing the configuration and data for the worksheet.
+
+        """
+        for merge_range, cells in merge_dict.items():
+            min_range, max_range = merge_range
+            if min_range != max_range:
+                right_down_format = cells[-1].cell_format
+                merged_format = cells[0].cell_format
+                merged_format["right"] = right_down_format.get("right", 0)
+                merged_format["bottom"] = right_down_format.get("bottom", 0)
+
+                sheet.merge_range(
+                    *min_range,
+                    *max_range,
+                    cells[0].data,
+                    self.add_format(merged_format)
+                )
+        return
+
     def __write_excel_sheet(self, sheet: xlsxwriter.worksheet.Worksheet, sheet_data: Sheet):
         """Write data, tables, images, and formatted cells to an Excel worksheet.
 
@@ -122,27 +202,21 @@ class ExcelWriter(Workbook):
         if sheet_data.images:
             for key, image_data in sheet_data.images.items():
                 row, column = literal_eval(key)
+                options = {
+                    "x_offset": image_data['x_offset'],
+                    "y_offset": image_data['y_offset'],
+                    "x_scale": image_data['x_scale'],
+                    "y_scale": image_data['y_scale'],
+                    "image_data": BytesIO(image_data['data'])
+                }
                 sheet.insert_image(
-                    row, column, "image.png", {"image_data": BytesIO(image_data)}
+                    row, column, "image.png", options
                 )
+
         if sheet_data.cells:
-            for cell in sheet_data.cells:
-                sheet.write(
-                    cell.x,
-                    cell.y,
-                    cell.data,
-                    self.add_format(cell.cell_format),
-                )
-                if cell.data_format:
-                    data_format = self.__parse_data_format(
-                        cell.data, cell.cell_format, cell.data_format
-                    )
-                    sheet.write_rich_string(
-                        cell.x,
-                        cell.y,
-                        *data_format,
-                        self.add_format(cell.cell_format)
-                    )
+            merge_dict = defaultdict(list)
+            self.__write_cells(merge_dict, sheet_data.cells, sheet)
+            self.__merge_cells_and_write_data(merge_dict, sheet)
 
         sheet.ignore_errors({"number_stored_as_text": "A1:XFD1048576"})
 
@@ -159,52 +233,10 @@ class ExcelWriter(Workbook):
          """
         merge_dict = defaultdict(list)
         for column in table.columns.values():
-            for cell in column.cells:
-                # Write generic data to a worksheet cell.
-                sheet.write(
-                    cell.x,
-                    cell.y,
-                    cell.data,
-                    self.add_format(cell.cell_format),
-                )
+            self.__write_cells(merge_dict, column.cells, sheet)
 
-                # Write a "rich" string with multiple formats to a worksheet cell.
-                if cell.data_format:
-                    data_format = self.__parse_data_format(
-                        cell.data, cell.cell_format, cell.data_format
-                    )
-                    sheet.write_rich_string(
-                        cell.x,
-                        cell.y,
-                        *data_format,
-                        self.add_format(cell.cell_format)
-                    )
-                if cell.merge_range:
-                    min_range, max_range = cell.merge_range
-                    key = (
-                        tuple(min_range),
-                        tuple(max_range),
-                    )  # make sure that it is not list
-                    merge_dict[key].append(cell)
-                # Add cell comments
-                if cell.comments:
-                    sheet.write_comment(cell.x, cell.y, cell.comments["data"])
+        self.__merge_cells_and_write_data(merge_dict, sheet)
 
-        # merge cells and write data into cells
-        for merge_range, cells in merge_dict.items():
-            min_range, max_range = merge_range
-            if min_range != max_range:
-                right_down_format = cells[-1].cell_format
-                merged_format = cells[0].cell_format
-                merged_format["right"] = right_down_format.get("right", 0)
-                merged_format["bottom"] = right_down_format.get("bottom", 0)
-
-                sheet.merge_range(
-                    *min_range,
-                    *max_range,
-                    cells[0].data,
-                    self.add_format(merged_format)
-                )
         # An auto filter in Excel
         if table.filter_option:
             sheet.autofilter(
