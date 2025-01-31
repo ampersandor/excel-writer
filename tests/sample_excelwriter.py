@@ -34,19 +34,19 @@ def export_student_sheet(students: Dict[str, List[Tuple]]) -> Sheet:
 
     name_col = table.get_and_add_column("Name", width=13.5, column_format={"left": 2})
     name_col.get_and_add_cell(
-        "Name", cell_format=header_format.font_color("white").bg_color("#E87A5D")
+        "Name", cell_format=header_format.font_color("white").bg_color("#E87A5D").bold()
     )
     subject_col = table.get_and_add_column("Subject", width=20)
     subject_col.get_and_add_cell(
-        "Subject", cell_format=header_format.font_color("#F3B941").bg_color("#3B5BA5")
+        "Subject", cell_format=header_format.font_color("#F3B941").bg_color("#3B5BA5").bold()
     )
     score_col = table.get_and_add_column("Score", width=4.5)
     score_col.get_and_add_cell(
-        "Score", cell_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D")
+        "Score", cell_format=header_format.font_color("#3B5BA5").bg_color("#E87A5D").bold()
     )
     average_col = table.get_and_add_column("Average", width=8, column_format={"right": 2})
     average_col.get_and_add_cell(
-        "Average", cell_format=header_format.font_color("#E87A5D").bg_color("#F3B941")
+        "Average", cell_format=header_format.font_color("#E87A5D").bg_color("#F3B941").bold()
     )
 
     for student_name, records in students.items():
